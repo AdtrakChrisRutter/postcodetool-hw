@@ -50,6 +50,29 @@
             background-color: #e9ecef;
         }
 
+        .filter-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+
+        .filter-section label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .filter-section select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            background-color: white;
+        }
+
         #cities-list {
             flex: 1;
             overflow-y: auto;
@@ -58,6 +81,19 @@
             border: 1px solid #dee2e6;
             border-radius: 4px;
             padding: 10px;
+        }
+
+        .cities-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 0 10px;
+        }
+
+        .cities-count {
+            font-size: 14px;
+            color: #666;
         }
 
         .city-item {
@@ -70,6 +106,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .city-item:hover {
+            background-color: #f8f9fa;
         }
 
         .city-info {
@@ -93,15 +135,35 @@
             margin-left: 15px;
         }
 
+        #download-btn,
         #reset-btn {
             padding: 10px;
-            background-color: #6c757d;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
             transition: background-color 0.2s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        #download-btn {
+            background-color: #FF4438;
+        }
+
+        #download-btn:hover {
+            background-color: #e63e33;
+        }
+
+        #download-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+
+        #reset-btn {
+            background-color: #6c757d;
         }
 
         #reset-btn:hover {
@@ -164,7 +226,21 @@
         <div class="sidebar">
             <a href="index.html" class="back-link">← Back to Tools</a>
             <img src="https://www.datocms-assets.com/19381/1652271729-adtrak-2.png" alt="Adtrak Logo" class="logo">
+            <div class="filter-section">
+                <label for="population-filter">Filter by Population</label>
+                <select id="population-filter">
+                    <option value="0">All Cities</option>
+                    <option value="1000000">Over 1 Million</option>
+                    <option value="500000">Over 500,000</option>
+                    <option value="250000">Over 250,000</option>
+                    <option value="100000">Over 100,000</option>
+                </select>
+            </div>
+            <div class="cities-header">
+                <span class="cities-count">Loading cities...</span>
+            </div>
             <div id="cities-list"></div>
+            <button id="download-btn" disabled>Download Cities List</button>
             <button id="reset-btn">Reset Map</button>
         </div>
         <div id="map"></div>
