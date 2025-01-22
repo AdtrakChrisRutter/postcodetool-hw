@@ -106,38 +106,58 @@ map.on(L.Draw.Event.CREATED, async function (event) {
         // Create a grid of points within the bounds
         const points = generateGridPoints(sw.lat, sw.lng, ne.lat, ne.lng);
         
-        // Split points into larger chunks since we're making fewer requests
-        const chunks = chunkArray(points, 200); // Doubled from 100
+        // Split points into chunks - reduced chunk size to avoid API limits
+        const chunks = chunkArray(points, 100);
         let allPostcodes = new Set();
         
         for (const chunk of chunks) {
-            const response = await fetch('https://api.postcodes.io/postcodes', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    geolocations: chunk.map(point => ({
-                        longitude: point[1],
-                        latitude: point[0],
-                        radius: 2000, // 2km radius, doubled from before
-                        limit: 1
-                    }))
-                })
-            });
+            try {
+                const response = await fetch('https://api.postcodes.io/postcodes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        geolocations: chunk.map(point => ({
+                            longitude: point[1],
+                            latitude: point[0],
+                            radius: 1500, // 1.5km radius
+                            limit: 1
+                        }))
+                    })
+                });
 
-            if (!response.ok) {
-                throw new Error('Failed to fetch postcodes');
-            }
-
-            const data = await response.json();
-            data.result.forEach(result => {
-                if (result.result && result.result.length > 0) {
-                    // Only store the outward code (short postcode)
-                    const shortCode = result.result[0].postcode.split(' ')[0];
-                    allPostcodes.add(shortCode);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            });
+
+                const data = await response.json();
+                
+                if (!data.result) {
+                    console.error('Unexpected API response:', data);
+                    throw new Error('Invalid API response format');
+                }
+
+                data.result.forEach(result => {
+                    if (result.result && result.result.length > 0) {
+                        // Only store the outward code (short postcode)
+                        const shortCode = result.result[0].postcode.split(' ')[0];
+                        allPostcodes.add(shortCode);
+                    }
+                });
+
+                // Add a small delay between chunks to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 100));
+            } catch (chunkError) {
+                console.error('Error processing chunk:', chunkError);
+                // Continue with next chunk instead of failing completely
+                continue;
+            }
+        }
+
+        if (allPostcodes.size === 0) {
+            postcodeList.innerHTML = '<div class="no-results">No postcodes found in this area</div>';
+            return;
         }
 
         // Update current postcodes and display them
@@ -145,7 +165,7 @@ map.on(L.Draw.Event.CREATED, async function (event) {
         displayPostcodes(currentPostcodes);
     } catch (error) {
         console.error('Error fetching postcodes:', error);
-        postcodeList.innerHTML = '<div class="error">Error fetching postcodes. Please try again.</div>';
+        postcodeList.innerHTML = '<div class="error">Error fetching postcodes. Please try again. (Error: ' + error.message + ')</div>';
         currentPostcodes = [];
         document.getElementById('download-csv-btn').disabled = true;
         document.getElementById('download-xls-btn').disabled = true;
