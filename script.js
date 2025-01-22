@@ -19,7 +19,7 @@ const formatToggle = document.getElementById('postcode-format-toggle');
 let useFullPostcode = true;
 
 formatToggle.addEventListener('change', function() {
-    useFullPostcode = !this.checked;
+    useFullPostcode = this.checked; // When checked (right) = full codes
     if (currentPostcodes.length > 0) {
         displayPostcodes(currentPostcodes);
     }

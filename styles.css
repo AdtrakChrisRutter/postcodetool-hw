@@ -165,18 +165,22 @@ h2 {
 .toggle-container {
     margin-bottom: 15px;
     padding: 0 10px;
+    display: flex;
+    justify-content: center;
 }
 
 .toggle {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    gap: 10px;
     cursor: pointer;
 }
 
 .toggle-label {
     font-size: 14px;
     color: #666;
+    user-select: none;
 }
 
 .toggle input {
