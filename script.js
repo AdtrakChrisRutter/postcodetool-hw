@@ -14,49 +14,6 @@ map.addLayer(drawnItems);
 // Store current postcodes
 let currentPostcodes = [];
 
-// Initialize postcode format toggle
-const formatToggle = document.getElementById('postcode-format-toggle');
-let useFullPostcode = false; // Start with short codes
-
-formatToggle.addEventListener('change', function() {
-    useFullPostcode = !this.checked; // When checked (right) = short codes
-    if (currentPostcodes.length > 0) {
-        displayPostcodes(currentPostcodes);
-    }
-});
-
-const drawControl = new L.Control.Draw({
-    position: 'topright',
-    draw: {
-        polygon: {
-            allowIntersection: false,
-            drawError: {
-                color: '#e1e100',
-                timeout: 1000
-            },
-            shapeOptions: {
-                color: '#2196F3'
-            },
-            showArea: true
-        },
-        rectangle: {
-            shapeOptions: {
-                color: '#2196F3'
-            }
-        },
-        // Disable other drawing tools
-        polyline: false,
-        circle: false,
-        circlemarker: false,
-        marker: false
-    },
-    edit: {
-        featureGroup: drawnItems,
-        remove: true
-    }
-});
-map.addControl(drawControl);
-
 // Set UK bounds
 const ukBounds = L.latLngBounds(
     [49.8, -8.6], // Southwest corner
@@ -168,13 +125,11 @@ function displayPostcodes(postcodes) {
         return;
     }
     
-    // Format postcodes based on toggle state
-    const formattedPostcodes = useFullPostcode 
-        ? postcodes 
-        : postcodes.map(postcode => postcode.split(' ')[0]);
+    // Format postcodes to short format
+    const shortPostcodes = postcodes.map(postcode => postcode.split(' ')[0]);
     
-    // Remove duplicates that might occur in short format
-    const uniquePostcodes = [...new Set(formattedPostcodes)].sort();
+    // Remove duplicates and sort
+    const uniquePostcodes = [...new Set(shortPostcodes)].sort();
     
     postcodeList.innerHTML = uniquePostcodes
         .map(postcode => `<div class="postcode-item">${postcode}</div>`)
@@ -196,13 +151,11 @@ document.getElementById('reset-btn').addEventListener('click', function() {
 document.getElementById('download-btn').addEventListener('click', function() {
     if (!currentPostcodes || !currentPostcodes.length) return;
     
-    // Format postcodes based on toggle state
-    const formattedPostcodes = useFullPostcode 
-        ? currentPostcodes 
-        : [...new Set(currentPostcodes.map(postcode => postcode.split(' ')[0]))];
+    // Format postcodes to short format
+    const shortPostcodes = [...new Set(currentPostcodes.map(postcode => postcode.split(' ')[0]))];
     
     // Create CSV content
-    const csvContent = 'Postcode\n' + formattedPostcodes.join('\n');
+    const csvContent = 'Postcode\n' + shortPostcodes.join('\n');
     
     // Create blob and download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -210,8 +163,7 @@ document.getElementById('download-btn').addEventListener('click', function() {
     
     // Set up download link
     link.href = URL.createObjectURL(blob);
-    const format = useFullPostcode ? 'full' : 'short';
-    link.download = `uk_postcodes_${format}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `uk_postcodes_${new Date().toISOString().split('T')[0]}.csv`;
     
     // Trigger download
     document.body.appendChild(link);
