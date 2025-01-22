@@ -61,43 +61,6 @@ map.on('drag', function() {
 // Store current cities
 let currentCities = [];
 
-// Function to get city coordinates using postcodes.io API
-async function getCityCoordinates() {
-    document.querySelector('.cities-count').textContent = 'Loading cities...';
-    
-    console.log('Fetching coordinates for', ukCities.length, 'cities');
-    
-    const cityPromises = ukCities.map(async city => {
-        try {
-            // Try to find a postcode for the city center
-            console.log('Fetching coordinates for:', city.name);
-            const response = await fetch(`https://api.postcodes.io/postcodes?q=${encodeURIComponent(city.name)}&limit=1`);
-            const data = await response.json();
-            
-            if (data.result && data.result.length > 0) {
-                console.log('Found coordinates for', city.name, ':', data.result[0].latitude, data.result[0].longitude);
-                return {
-                    ...city,
-                    latitude: data.result[0].latitude,
-                    longitude: data.result[0].longitude,
-                    postcode: data.result[0].postcode
-                };
-            } else {
-                console.log('No coordinates found for:', city.name);
-            }
-        } catch (error) {
-            console.error(`Error fetching coordinates for ${city.name}:`, error);
-        }
-        return city;
-    });
-    
-    const citiesWithCoordinates = await Promise.all(cityPromises);
-    console.log('Cities with coordinates:', citiesWithCoordinates.filter(c => c.latitude && c.longitude).length);
-    
-    ukCities.splice(0, ukCities.length, ...citiesWithCoordinates);
-    document.querySelector('.cities-count').textContent = 'Draw a shape to find cities';
-}
-
 // Function to create a city marker
 function createCityMarker(city) {
     const marker = L.marker([city.latitude, city.longitude], {
@@ -156,14 +119,14 @@ function updateCitiesList(layers) {
     
     if (!layers || layers.length === 0) {
         citiesList.innerHTML = '';
-        citiesCount.textContent = 'Draw a shape to find cities';
+        citiesCount.textContent = 'Draw a shape to find towns & cities';
         downloadBtn.disabled = true;
         currentCities = [];
         return;
     }
     
     // Filter cities within the shapes and by population
-    currentCities = ukCities.filter(city => {
+    currentCities = ukTownsAndCities.filter(city => {
         const hasCoords = city.latitude && city.longitude;
         const meetsPopulation = city.population >= populationFilter;
         const inShape = isCityInShapes(city, layers);
@@ -177,8 +140,8 @@ function updateCitiesList(layers) {
     });
 
     if (currentCities.length === 0) {
-        citiesList.innerHTML = '<div class="no-results">No major cities found in these areas</div>';
-        citiesCount.textContent = 'No cities found';
+        citiesList.innerHTML = '<div class="no-results">No major towns or cities found in these areas</div>';
+        citiesCount.textContent = 'No locations found';
         downloadBtn.disabled = true;
         return;
     }
@@ -187,7 +150,7 @@ function updateCitiesList(layers) {
     currentCities.sort((a, b) => b.population - a.population);
 
     // Update cities count
-    citiesCount.textContent = `${currentCities.length} ${currentCities.length === 1 ? 'city' : 'cities'} found`;
+    citiesCount.textContent = `${currentCities.length} ${currentCities.length === 1 ? 'location' : 'locations'} found`;
 
     // Add markers to the map
     currentCities.forEach(city => {
@@ -229,7 +192,7 @@ function updateCitiesList(layers) {
 }
 
 // Initialize city coordinates when the page loads
-getCityCoordinates().catch(console.error);
+// getCityCoordinates().catch(console.error);
 
 // Handle population filter change
 document.getElementById('population-filter').addEventListener('change', () => {
@@ -243,14 +206,14 @@ map.on(L.Draw.Event.CREATED, async function (event) {
 
     // Show loading state
     const citiesList = document.getElementById('cities-list');
-    citiesList.innerHTML = '<div class="loading">Finding cities...</div>';
+    citiesList.innerHTML = '<div class="loading">Finding locations...</div>';
     document.getElementById('download-btn').disabled = true;
 
     try {
         updateCitiesList(drawnItems.getLayers());
     } catch (error) {
         console.error('Error updating cities:', error);
-        citiesList.innerHTML = '<div class="error">Error finding cities. Please try again.</div>';
+        citiesList.innerHTML = '<div class="error">Error finding locations. Please try again.</div>';
     }
 });
 
@@ -259,7 +222,7 @@ map.on(L.Draw.Event.DELETED, function (event) {
     const layers = drawnItems.getLayers();
     if (layers.length === 0) {
         document.getElementById('cities-list').innerHTML = '';
-        document.querySelector('.cities-count').textContent = 'Draw a shape to find cities';
+        document.querySelector('.cities-count').textContent = 'Draw a shape to find towns & cities';
         document.getElementById('download-btn').disabled = true;
         cityMarkers.clearLayers();
         currentCities = [];
@@ -273,7 +236,7 @@ document.getElementById('reset-btn').addEventListener('click', function() {
     drawnItems.clearLayers();
     cityMarkers.clearLayers();
     document.getElementById('cities-list').innerHTML = '';
-    document.querySelector('.cities-count').textContent = 'Draw a shape to find cities';
+    document.querySelector('.cities-count').textContent = 'Draw a shape to find towns & cities';
     document.getElementById('download-btn').disabled = true;
     currentCities = [];
 });
@@ -284,7 +247,7 @@ document.getElementById('download-btn').addEventListener('click', function() {
 
     // Create CSV content
     const csvContent = [
-        ['City', 'Population', 'Area Code', 'Latitude', 'Longitude'].join(','),
+        ['Location', 'Population', 'Area Code', 'Latitude', 'Longitude'].join(','),
         ...currentCities.map(city => [
             city.name,
             city.population,
@@ -300,7 +263,7 @@ document.getElementById('download-btn').addEventListener('click', function() {
 
     // Set up download link
     link.href = URL.createObjectURL(blob);
-    link.download = `uk_cities_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `uk_locations_${new Date().toISOString().split('T')[0]}.csv`;
 
     // Trigger download
     document.body.appendChild(link);
