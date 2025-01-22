@@ -40,6 +40,9 @@
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
+        // City markers layer group
+        const cityMarkersLayer = L.layerGroup().addTo(map);
+
         // Initialize drawing controls
         const drawControl = new L.Control.Draw({
             position: 'topright',
@@ -90,7 +93,11 @@
         // Handle drawing events
         map.on(L.Draw.Event.CREATED, async function (event) {
             const layer = event.layer;
+            drawnItems.clearLayers(); // Clear previous shapes
             drawnItems.addLayer(layer);
+            
+            // Clear previous city markers
+            cityMarkersLayer.clearLayers();
             
             // Show loading state
             const cityList = document.getElementById('city-list');
@@ -102,6 +109,26 @@
             currentFilteredCities = ukTownsAndCities.filter(city => {
                 const cityLatLng = L.latLng(city.latitude, city.longitude);
                 return layer.getBounds().contains(cityLatLng);
+            });
+
+            // Add markers for filtered cities
+            currentFilteredCities.forEach(city => {
+                const marker = L.circleMarker(
+                    [city.latitude, city.longitude], 
+                    {
+                        radius: 8,
+                        fillColor: '#FF4438', // Adtrak red
+                        color: '#000',
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }
+                ).bindTooltip(city.name, {
+                    permanent: false,
+                    direction: 'top'
+                });
+                
+                cityMarkersLayer.addLayer(marker);
             });
 
             // Display filtered cities
@@ -128,6 +155,7 @@
                 const cityList = document.getElementById('city-list');
                 cityList.innerHTML = '';
                 currentFilteredCities = [];
+                cityMarkersLayer.clearLayers();
                 document.getElementById('download-csv-btn').disabled = true;
                 document.getElementById('download-xls-btn').disabled = true;
             }
@@ -136,6 +164,7 @@
         // Reset map view
         document.getElementById('reset-btn').addEventListener('click', () => {
             drawnItems.clearLayers();
+            cityMarkersLayer.clearLayers();
             map.setView([54.5, -2], 6);
             const cityList = document.getElementById('city-list');
             cityList.innerHTML = '';

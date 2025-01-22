@@ -191,6 +191,17 @@ body {
     padding: 15px;
 }
 
+/* Map marker styles */
+.leaflet-tooltip {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 5px 10px;
+    color: #333;
+    font-size: 0.9em;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
 /* Mobile Responsive Design */
 @media (max-width: 768px) {
     .container {
