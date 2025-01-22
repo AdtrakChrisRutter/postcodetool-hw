@@ -11,6 +11,20 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 const drawnItems = new L.FeatureGroup();
 map.addLayer(drawnItems);
 
+// Store current postcodes
+let currentPostcodes = [];
+
+// Initialize postcode format toggle
+const formatToggle = document.getElementById('postcode-format-toggle');
+let useFullPostcode = true;
+
+formatToggle.addEventListener('change', function() {
+    useFullPostcode = !this.checked;
+    if (currentPostcodes.length > 0) {
+        displayPostcodes(currentPostcodes);
+    }
+});
+
 const drawControl = new L.Control.Draw({
     position: 'topright',
     draw: {
@@ -66,6 +80,7 @@ map.on(L.Draw.Event.CREATED, async function (event) {
     // Show loading state
     const postcodeList = document.getElementById('postcode-list');
     postcodeList.innerHTML = '<div class="loading">Loading postcodes...</div>';
+    document.getElementById('download-btn').disabled = true;
     
     try {
         // Get the bounds of the drawn shape
@@ -108,11 +123,14 @@ map.on(L.Draw.Event.CREATED, async function (event) {
             });
         }
 
-        // Display the unique postcodes
-        displayPostcodes(Array.from(allPostcodes));
+        // Update current postcodes and display them
+        currentPostcodes = Array.from(allPostcodes).sort();
+        displayPostcodes(currentPostcodes);
     } catch (error) {
         console.error('Error fetching postcodes:', error);
         postcodeList.innerHTML = '<div class="error">Error fetching postcodes. Please try again.</div>';
+        currentPostcodes = [];
+        document.getElementById('download-btn').disabled = true;
     }
 });
 
@@ -150,16 +168,20 @@ function displayPostcodes(postcodes) {
         return;
     }
     
-    postcodeList.innerHTML = postcodes
-        .sort()
+    // Format postcodes based on toggle state
+    const formattedPostcodes = useFullPostcode 
+        ? postcodes 
+        : postcodes.map(postcode => postcode.split(' ')[0]);
+    
+    // Remove duplicates that might occur in short format
+    const uniquePostcodes = [...new Set(formattedPostcodes)].sort();
+    
+    postcodeList.innerHTML = uniquePostcodes
         .map(postcode => `<div class="postcode-item">${postcode}</div>`)
         .join('');
         
     // Enable download button
     downloadBtn.disabled = false;
-    
-    // Store postcodes for download
-    downloadBtn.setAttribute('data-postcodes', JSON.stringify(postcodes));
 }
 
 // Reset button functionality
@@ -167,15 +189,20 @@ document.getElementById('reset-btn').addEventListener('click', function() {
     drawnItems.clearLayers();
     document.getElementById('postcode-list').innerHTML = '';
     document.getElementById('download-btn').disabled = true;
+    currentPostcodes = [];
 });
 
 // Download button functionality
 document.getElementById('download-btn').addEventListener('click', function() {
-    const postcodes = JSON.parse(this.getAttribute('data-postcodes'));
-    if (!postcodes || !postcodes.length) return;
+    if (!currentPostcodes || !currentPostcodes.length) return;
+    
+    // Format postcodes based on toggle state
+    const formattedPostcodes = useFullPostcode 
+        ? currentPostcodes 
+        : [...new Set(currentPostcodes.map(postcode => postcode.split(' ')[0]))];
     
     // Create CSV content
-    const csvContent = 'Postcode\n' + postcodes.join('\n');
+    const csvContent = 'Postcode\n' + formattedPostcodes.join('\n');
     
     // Create blob and download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -183,7 +210,8 @@ document.getElementById('download-btn').addEventListener('click', function() {
     
     // Set up download link
     link.href = URL.createObjectURL(blob);
-    link.download = `uk_postcodes_${new Date().toISOString().split('T')[0]}.csv`;
+    const format = useFullPostcode ? 'full' : 'short';
+    link.download = `uk_postcodes_${format}_${new Date().toISOString().split('T')[0]}.csv`;
     
     // Trigger download
     document.body.appendChild(link);
