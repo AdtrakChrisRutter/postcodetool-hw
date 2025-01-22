@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UK Postcode Map</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <!-- Leaflet.draw CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <a href="index.html" class="back-link">← Back to Tools</a>
+            <img src="https://www.datocms-assets.com/19381/1652271729-adtrak-2.png" alt="Adtrak Logo" class="logo">
+            <div id="postcode-list"></div>
+            <div class="button-group">
+                <button id="download-csv-btn" disabled>Download CSV</button>
+                <button id="download-xls-btn" disabled>Download XLS</button>
+            </div>
+            <button id="reset-btn">Reset Shape</button>
+        </div>
+        <div id="map"></div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Leaflet.draw JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <!-- Main JS -->
+    <script src="script.js"></script>
+</body>
+</html>

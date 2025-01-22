@@ -53,24 +53,6 @@ body {
     padding: 10px;
 }
 
-.loading {
-    color: #666;
-    text-align: center;
-    padding: 20px;
-}
-
-.error {
-    color: #dc3545;
-    text-align: center;
-    padding: 20px;
-}
-
-.no-results {
-    color: #666;
-    text-align: center;
-    padding: 20px;
-}
-
 .postcode-item {
     background-color: #fff;
     border: 1px solid #dee2e6;
@@ -130,6 +112,36 @@ body {
     background-color: #5a6268;
 }
 
+.loading {
+    color: #666;
+    text-align: center;
+    padding: 20px;
+}
+
+.error {
+    color: #dc3545;
+    text-align: center;
+    padding: 20px;
+}
+
+.no-results {
+    color: #666;
+    text-align: center;
+    padding: 20px;
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    color: #FF4438;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
 /* Mobile Responsive Design */
 @media (max-width: 768px) {
     .container {
@@ -138,7 +150,6 @@ body {
 
     .sidebar {
         width: 100%;
-        max-width: none;
         height: 300px;
     }
 

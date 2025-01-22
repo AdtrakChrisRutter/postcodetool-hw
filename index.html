@@ -3,35 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UK Postcode Map</title>
-    
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Leaflet.draw CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-    
-    <link rel="stylesheet" href="styles.css">
+    <title>UK Location Tools</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            width: 200px;
+            height: auto;
+            margin-bottom: 40px;
+        }
+
+        .tools-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tool-card {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 300px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .tool-card h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .tool-card p {
+            color: #666;
+            margin-bottom: 20px;
+            min-height: 60px;
+        }
+
+        .tool-card a {
+            display: inline-block;
+            background-color: #FF4438;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        .tool-card a:hover {
+            background-color: #e63e33;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .tool-card {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .logo {
+                width: 150px;
+                margin-bottom: 30px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <div class="sidebar">
-            <img src="https://www.datocms-assets.com/19381/1652271729-adtrak-2.png" alt="Adtrak Logo" class="logo">
-            <h2>Postcodes</h2>
-            <div id="postcode-list"></div>
-            <div class="button-group">
-                <button id="download-csv-btn" disabled>Download CSV</button>
-                <button id="download-xls-btn" disabled>Download XLS</button>
+        <img src="https://www.datocms-assets.com/19381/1652271729-adtrak-2.png" alt="Adtrak Logo" class="logo">
+        <div class="tools-container">
+            <div class="tool-card">
+                <h2>Postcode Tool</h2>
+                <p>Draw shapes on a map to find all postcodes within the selected areas. Perfect for targeting specific regions.</p>
+                <a href="postcode.html">Open Postcode Tool</a>
             </div>
-            <button id="reset-btn">Reset Shape</button>
+            <div class="tool-card">
+                <h2>City & Phone Tool</h2>
+                <p>Draw shapes on a map to find major cities and their telephone area codes within the selected regions.</p>
+                <a href="cities.html">Open City Tool</a>
+            </div>
         </div>
-        <div id="map"></div>
     </div>
-
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet.draw JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-    <!-- Main JS -->
-    <script src="script.js"></script>
 </body>
 </html>
