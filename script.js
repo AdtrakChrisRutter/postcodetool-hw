@@ -12,7 +12,7 @@ const drawnItems = new L.FeatureGroup();
 map.addLayer(drawnItems);
 
 // Store current postcodes
-let currentPostcodes = [];
+let currentPostcodes = new Set();
 
 // Initialize drawing controls
 const drawControl = new L.Control.Draw({
@@ -59,35 +59,8 @@ map.on('drag', function() {
     map.panInsideBounds(ukBounds, { animate: false });
 });
 
-// Helper function to generate a grid of points within bounds
-function generateGridPoints(minLat, minLng, maxLat, maxLng) {
-    const points = [];
-    // Increase the step size since we only need short postcodes
-    const step = 0.02; // Approximately 2km grid, doubled from before
-    
-    for (let lat = minLat; lat <= maxLat; lat += step) {
-        for (let lng = minLng; lng <= maxLng; lng += step) {
-            points.push([lat, lng]);
-        }
-    }
-    
-    return points;
-}
-
-// Helper function to split array into chunks
-function chunkArray(array, size) {
-    const chunks = [];
-    for (let i = 0; i < array.length; i += size) {
-        chunks.push(array.slice(i, i + size));
-    }
-    return chunks;
-}
-
 // Handle drawing events
 map.on(L.Draw.Event.CREATED, async function (event) {
-    // Clear previous shapes
-    drawnItems.clearLayers();
-    
     const layer = event.layer;
     drawnItems.addLayer(layer);
     
@@ -98,7 +71,43 @@ map.on(L.Draw.Event.CREATED, async function (event) {
     document.getElementById('download-xls-btn').disabled = true;
     
     try {
-        // Get the bounds of the drawn shape
+        await updatePostcodesFromShapes();
+    } catch (error) {
+        console.error('Error fetching postcodes:', error);
+        postcodeList.innerHTML = '<div class="error">Error fetching postcodes. Please try again. (Error: ' + error.message + ')</div>';
+        document.getElementById('download-csv-btn').disabled = true;
+        document.getElementById('download-xls-btn').disabled = true;
+    }
+});
+
+// Handle shape deletion
+map.on(L.Draw.Event.DELETED, async function (event) {
+    if (drawnItems.getLayers().length === 0) {
+        // If all shapes are deleted, clear postcodes
+        currentPostcodes.clear();
+        const postcodeList = document.getElementById('postcode-list');
+        postcodeList.innerHTML = '';
+        document.getElementById('download-csv-btn').disabled = true;
+        document.getElementById('download-xls-btn').disabled = true;
+    } else {
+        // If some shapes remain, update postcodes
+        try {
+            await updatePostcodesFromShapes();
+        } catch (error) {
+            console.error('Error updating postcodes:', error);
+        }
+    }
+});
+
+// Function to update postcodes from all shapes
+async function updatePostcodesFromShapes() {
+    const layers = drawnItems.getLayers();
+    if (layers.length === 0) return;
+
+    const postcodeList = document.getElementById('postcode-list');
+    let allPostcodes = new Set();
+
+    for (const layer of layers) {
         const bounds = layer.getBounds();
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
@@ -106,9 +115,8 @@ map.on(L.Draw.Event.CREATED, async function (event) {
         // Create a grid of points within the bounds
         const points = generateGridPoints(sw.lat, sw.lng, ne.lat, ne.lng);
         
-        // Split points into chunks - reduced chunk size to avoid API limits
+        // Split points into chunks
         const chunks = chunkArray(points, 100);
-        let allPostcodes = new Set();
         
         for (const chunk of chunks) {
             try {
@@ -150,27 +158,22 @@ map.on(L.Draw.Event.CREATED, async function (event) {
                 await new Promise(resolve => setTimeout(resolve, 100));
             } catch (chunkError) {
                 console.error('Error processing chunk:', chunkError);
-                // Continue with next chunk instead of failing completely
                 continue;
             }
         }
+    }
 
-        if (allPostcodes.size === 0) {
-            postcodeList.innerHTML = '<div class="no-results">No postcodes found in this area</div>';
-            return;
-        }
-
-        // Update current postcodes and display them
-        currentPostcodes = Array.from(allPostcodes).sort();
-        displayPostcodes(currentPostcodes);
-    } catch (error) {
-        console.error('Error fetching postcodes:', error);
-        postcodeList.innerHTML = '<div class="error">Error fetching postcodes. Please try again. (Error: ' + error.message + ')</div>';
-        currentPostcodes = [];
+    if (allPostcodes.size === 0) {
+        postcodeList.innerHTML = '<div class="no-results">No postcodes found in these areas</div>';
         document.getElementById('download-csv-btn').disabled = true;
         document.getElementById('download-xls-btn').disabled = true;
+        return;
     }
-});
+
+    // Update current postcodes and display them
+    currentPostcodes = allPostcodes;
+    displayPostcodes(Array.from(currentPostcodes));
+}
 
 // Function to display postcodes in the sidebar
 function displayPostcodes(postcodes) {
@@ -179,19 +182,16 @@ function displayPostcodes(postcodes) {
     const downloadXlsBtn = document.getElementById('download-xls-btn');
     
     if (postcodes.length === 0) {
-        postcodeList.innerHTML = '<div class="no-results">No postcodes found in this area</div>';
+        postcodeList.innerHTML = '<div class="no-results">No postcodes found in these areas</div>';
         downloadCsvBtn.disabled = true;
         downloadXlsBtn.disabled = true;
         return;
     }
     
-    // Format postcodes to short format
-    const shortPostcodes = postcodes.map(postcode => postcode.split(' ')[0]);
+    // Sort postcodes
+    const sortedPostcodes = [...postcodes].sort();
     
-    // Remove duplicates and sort
-    const uniquePostcodes = [...new Set(shortPostcodes)].sort();
-    
-    postcodeList.innerHTML = uniquePostcodes
+    postcodeList.innerHTML = sortedPostcodes
         .map(postcode => `<div class="postcode-item">${postcode}</div>`)
         .join('');
         
@@ -206,18 +206,15 @@ document.getElementById('reset-btn').addEventListener('click', function() {
     document.getElementById('postcode-list').innerHTML = '';
     document.getElementById('download-csv-btn').disabled = true;
     document.getElementById('download-xls-btn').disabled = true;
-    currentPostcodes = [];
+    currentPostcodes.clear();
 });
 
 // Download CSV button functionality
 document.getElementById('download-csv-btn').addEventListener('click', function() {
-    if (!currentPostcodes || !currentPostcodes.length) return;
-    
-    // Format postcodes to short format
-    const shortPostcodes = [...new Set(currentPostcodes.map(postcode => postcode.split(' ')[0]))];
+    if (!currentPostcodes.size) return;
     
     // Create CSV content
-    const csvContent = 'Postcode\n' + shortPostcodes.join('\n');
+    const csvContent = 'Postcode\n' + Array.from(currentPostcodes).sort().join('\n');
     
     // Create blob and download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -235,10 +232,7 @@ document.getElementById('download-csv-btn').addEventListener('click', function()
 
 // Download XLS button functionality
 document.getElementById('download-xls-btn').addEventListener('click', function() {
-    if (!currentPostcodes || !currentPostcodes.length) return;
-    
-    // Format postcodes to short format
-    const shortPostcodes = [...new Set(currentPostcodes.map(postcode => postcode.split(' ')[0]))];
+    if (!currentPostcodes.size) return;
     
     // Create XLS content with HTML table
     const xlsContent = `
@@ -249,7 +243,7 @@ document.getElementById('download-xls-btn').addEventListener('click', function()
             <body>
                 <table>
                     <tr><th>Postcode</th></tr>
-                    ${shortPostcodes.map(postcode => `<tr><td>${postcode}</td></tr>`).join('')}
+                    ${Array.from(currentPostcodes).sort().map(postcode => `<tr><td>${postcode}</td></tr>`).join('')}
                 </table>
             </body>
         </html>
@@ -268,6 +262,29 @@ document.getElementById('download-xls-btn').addEventListener('click', function()
     link.click();
     document.body.removeChild(link);
 });
+
+// Helper function to generate a grid of points within bounds
+function generateGridPoints(minLat, minLng, maxLat, maxLng) {
+    const points = [];
+    const step = 0.02; // Approximately 2km grid
+    
+    for (let lat = minLat; lat <= maxLat; lat += step) {
+        for (let lng = minLng; lng <= maxLng; lng += step) {
+            points.push([lat, lng]);
+        }
+    }
+    
+    return points;
+}
+
+// Helper function to split array into chunks
+function chunkArray(array, size) {
+    const chunks = [];
+    for (let i = 0; i < array.length; i += size) {
+        chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+}
 
 // Prevent map from zooming too far out
 map.setMinZoom(5);
