@@ -64,28 +64,36 @@ let currentCities = [];
 // Function to get city coordinates using postcodes.io API
 async function getCityCoordinates() {
     document.querySelector('.cities-count').textContent = 'Loading cities...';
-
+    
+    console.log('Fetching coordinates for', ukCities.length, 'cities');
+    
     const cityPromises = ukCities.map(async city => {
         try {
             // Try to find a postcode for the city center
+            console.log('Fetching coordinates for:', city.name);
             const response = await fetch(`https://api.postcodes.io/postcodes?q=${encodeURIComponent(city.name)}&limit=1`);
             const data = await response.json();
-
+            
             if (data.result && data.result.length > 0) {
+                console.log('Found coordinates for', city.name, ':', data.result[0].latitude, data.result[0].longitude);
                 return {
                     ...city,
                     latitude: data.result[0].latitude,
                     longitude: data.result[0].longitude,
                     postcode: data.result[0].postcode
                 };
+            } else {
+                console.log('No coordinates found for:', city.name);
             }
         } catch (error) {
             console.error(`Error fetching coordinates for ${city.name}:`, error);
         }
         return city;
     });
-
+    
     const citiesWithCoordinates = await Promise.all(cityPromises);
+    console.log('Cities with coordinates:', citiesWithCoordinates.filter(c => c.latitude && c.longitude).length);
+    
     ukCities.splice(0, ukCities.length, ...citiesWithCoordinates);
     document.querySelector('.cities-count').textContent = 'Draw a shape to find cities';
 }
@@ -109,16 +117,28 @@ function createCityMarker(city) {
 
 // Function to check if a city is inside any of the drawn shapes
 function isCityInShapes(city, layers) {
+    console.log('Checking city:', city.name, 'at', city.latitude, city.longitude);
+    
+    if (!city.latitude || !city.longitude) {
+        console.log('City has no coordinates:', city.name);
+        return false;
+    }
+    
     for (const layer of layers) {
         if (layer instanceof L.Polygon || layer instanceof L.Rectangle) {
             const bounds = layer.getBounds();
             const cityLatLng = L.latLng(city.latitude, city.longitude);
-
+            
+            console.log('Shape bounds:', bounds);
+            console.log('City position:', cityLatLng);
+            
             if (bounds.contains(cityLatLng)) {
+                console.log('City is inside shape:', city.name);
                 return true;
             }
         }
     }
+    console.log('City is outside all shapes:', city.name);
     return false;
 }
 
@@ -128,9 +148,12 @@ function updateCitiesList(layers) {
     const downloadBtn = document.getElementById('download-btn');
     const citiesCount = document.querySelector('.cities-count');
     const populationFilter = parseInt(document.getElementById('population-filter').value);
-
+    
+    console.log('Updating cities list with filter:', populationFilter);
+    console.log('Number of shapes:', layers.length);
+    
     cityMarkers.clearLayers();
-
+    
     if (!layers || layers.length === 0) {
         citiesList.innerHTML = '';
         citiesCount.textContent = 'Draw a shape to find cities';
@@ -138,13 +161,19 @@ function updateCitiesList(layers) {
         currentCities = [];
         return;
     }
-
+    
     // Filter cities within the shapes and by population
     currentCities = ukCities.filter(city => {
-        return city.latitude &&
-               city.longitude &&
-               city.population >= populationFilter &&
-               isCityInShapes(city, layers);
+        const hasCoords = city.latitude && city.longitude;
+        const meetsPopulation = city.population >= populationFilter;
+        const inShape = isCityInShapes(city, layers);
+        
+        console.log('City:', city.name);
+        console.log('- Has coordinates:', hasCoords);
+        console.log('- Meets population:', meetsPopulation);
+        console.log('- In shape:', inShape);
+        
+        return hasCoords && meetsPopulation && inShape;
     });
 
     if (currentCities.length === 0) {
