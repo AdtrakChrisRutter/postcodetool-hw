@@ -59,6 +59,30 @@ map.on('drag', function() {
     map.panInsideBounds(ukBounds, { animate: false });
 });
 
+// Helper function to generate a grid of points within bounds
+function generateGridPoints(minLat, minLng, maxLat, maxLng) {
+    const points = [];
+    // Increase the step size since we only need short postcodes
+    const step = 0.02; // Approximately 2km grid, doubled from before
+    
+    for (let lat = minLat; lat <= maxLat; lat += step) {
+        for (let lng = minLng; lng <= maxLng; lng += step) {
+            points.push([lat, lng]);
+        }
+    }
+    
+    return points;
+}
+
+// Helper function to split array into chunks
+function chunkArray(array, size) {
+    const chunks = [];
+    for (let i = 0; i < array.length; i += size) {
+        chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+}
+
 // Handle drawing events
 map.on(L.Draw.Event.CREATED, async function (event) {
     // Clear previous shapes
@@ -82,8 +106,8 @@ map.on(L.Draw.Event.CREATED, async function (event) {
         // Create a grid of points within the bounds
         const points = generateGridPoints(sw.lat, sw.lng, ne.lat, ne.lng);
         
-        // Split points into chunks to avoid API limits
-        const chunks = chunkArray(points, 100);
+        // Split points into larger chunks since we're making fewer requests
+        const chunks = chunkArray(points, 200); // Doubled from 100
         let allPostcodes = new Set();
         
         for (const chunk of chunks) {
@@ -96,7 +120,7 @@ map.on(L.Draw.Event.CREATED, async function (event) {
                     geolocations: chunk.map(point => ({
                         longitude: point[1],
                         latitude: point[0],
-                        radius: 1000, // 1km radius
+                        radius: 2000, // 2km radius, doubled from before
                         limit: 1
                     }))
                 })
@@ -109,7 +133,9 @@ map.on(L.Draw.Event.CREATED, async function (event) {
             const data = await response.json();
             data.result.forEach(result => {
                 if (result.result && result.result.length > 0) {
-                    allPostcodes.add(result.result[0].postcode);
+                    // Only store the outward code (short postcode)
+                    const shortCode = result.result[0].postcode.split(' ')[0];
+                    allPostcodes.add(shortCode);
                 }
             });
         }
@@ -125,29 +151,6 @@ map.on(L.Draw.Event.CREATED, async function (event) {
         document.getElementById('download-xls-btn').disabled = true;
     }
 });
-
-// Helper function to generate a grid of points within bounds
-function generateGridPoints(minLat, minLng, maxLat, maxLng) {
-    const points = [];
-    const step = 0.01; // Approximately 1km grid
-    
-    for (let lat = minLat; lat <= maxLat; lat += step) {
-        for (let lng = minLng; lng <= maxLng; lng += step) {
-            points.push([lat, lng]);
-        }
-    }
-    
-    return points;
-}
-
-// Helper function to split array into chunks
-function chunkArray(array, size) {
-    const chunks = [];
-    for (let i = 0; i < array.length; i += size) {
-        chunks.push(array.slice(i, i + size));
-    }
-    return chunks;
-}
 
 // Function to display postcodes in the sidebar
 function displayPostcodes(postcodes) {

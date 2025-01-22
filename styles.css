@@ -1,3 +1,4 @@
+/* Reset and base styles */
 * {
     margin: 0;
     padding: 0;
@@ -5,87 +6,89 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
     height: 100vh;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
 }
 
+/* Container styles */
 .container {
+    flex: 1;
     display: flex;
-    height: 100vh;
+    overflow: hidden;
 }
 
 .sidebar {
     width: 300px;
-    background-color: #f8f9fa;
     padding: 20px;
+    background-color: #f8f9fa;
+    border-right: 1px solid #dee2e6;
     display: flex;
     flex-direction: column;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
+    overflow-y: auto;
 }
 
-h2 {
-    margin-bottom: 15px;
-    color: #333;
+.logo {
+    width: 150px;
+    height: auto;
+    margin: 0 auto 20px;
+    display: block;
+}
+
+#map {
+    flex: 1;
+    background-color: #e9ecef;
 }
 
 #postcode-list {
     flex: 1;
     overflow-y: auto;
-    margin-bottom: 15px;
-    padding: 10px;
+    margin-bottom: 20px;
     background: white;
-    border: 1px solid #ddd;
+    border: 1px solid #dee2e6;
     border-radius: 4px;
-}
-
-.postcode-item {
-    padding: 8px;
-    border-bottom: 1px solid #eee;
-}
-
-.postcode-item:last-child {
-    border-bottom: none;
+    padding: 10px;
 }
 
 .loading {
-    padding: 20px;
-    text-align: center;
     color: #666;
-}
-
-.loading::after {
-    content: '';
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    margin-left: 10px;
-    border: 2px solid #ddd;
-    border-top-color: #007bff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+    text-align: center;
+    padding: 20px;
 }
 
 .error {
-    padding: 20px;
-    text-align: center;
     color: #dc3545;
-    background-color: #f8d7da;
-    border-radius: 4px;
+    text-align: center;
+    padding: 20px;
 }
 
 .no-results {
-    padding: 20px;
-    text-align: center;
     color: #666;
-    font-style: italic;
+    text-align: center;
+    padding: 20px;
 }
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+.postcode-item {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin: 4px 0;
+    padding: 8px 12px;
+    color: #333;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.button-group button {
+    flex: 1;
+    margin-bottom: 0 !important;
 }
 
 #download-csv-btn,
@@ -102,25 +105,14 @@ h2 {
     margin-bottom: 10px;
 }
 
-.button-group {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.button-group button {
-    flex: 1;
-    margin-bottom: 0 !important;
-}
-
 #download-csv-btn,
 #download-xls-btn {
-    background-color: #28a745;
+    background-color: #FF4438;
 }
 
 #download-csv-btn:hover,
 #download-xls-btn:hover {
-    background-color: #218838;
+    background-color: #e63e33;
 }
 
 #download-csv-btn:disabled,
@@ -131,56 +123,11 @@ h2 {
 }
 
 #reset-btn {
-    background-color: #dc3545;
+    background-color: #6c757d;
 }
 
 #reset-btn:hover {
-    background-color: #c82333;
-}
-
-#map {
-    flex: 1;
-    background-color: #e5e5e5;
-}
-
-/* Drawing Control Styles */
-.leaflet-draw-toolbar .leaflet-draw-draw-polygon {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>') !important;
-    background-size: 16px !important;
-    background-position: center !important;
-    background-repeat: no-repeat !important;
-}
-
-.leaflet-draw-toolbar .leaflet-draw-draw-rectangle {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>') !important;
-    background-size: 16px !important;
-    background-position: center !important;
-    background-repeat: no-repeat !important;
-}
-
-.leaflet-draw-toolbar a {
-    background-color: white !important;
-    border-radius: 4px !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-}
-
-.leaflet-draw-toolbar a:hover {
-    background-color: #f8f9fa !important;
-}
-
-.leaflet-draw-tooltip {
-    background-color: rgba(0, 0, 0, 0.8);
-    border: none;
-    border-radius: 4px;
-    color: white;
-    padding: 4px 8px;
-}
-
-.postcode-item {
-    background-color: #f8f9fa;
-    border-radius: 4px;
-    margin: 4px 0;
-    padding: 4px 8px;
+    background-color: #5a6268;
 }
 
 /* Mobile Responsive Design */
@@ -197,5 +144,10 @@ h2 {
 
     #map {
         height: calc(100vh - 300px);
+    }
+
+    .logo {
+        width: 120px;
+        margin-bottom: 15px;
     }
 }
