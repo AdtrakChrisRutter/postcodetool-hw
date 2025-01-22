@@ -142,8 +142,11 @@ function chunkArray(array, size) {
 // Function to display postcodes in the sidebar
 function displayPostcodes(postcodes) {
     const postcodeList = document.getElementById('postcode-list');
+    const downloadBtn = document.getElementById('download-btn');
+    
     if (postcodes.length === 0) {
         postcodeList.innerHTML = '<div class="no-results">No postcodes found in this area</div>';
+        downloadBtn.disabled = true;
         return;
     }
     
@@ -151,12 +154,41 @@ function displayPostcodes(postcodes) {
         .sort()
         .map(postcode => `<div class="postcode-item">${postcode}</div>`)
         .join('');
+        
+    // Enable download button
+    downloadBtn.disabled = false;
+    
+    // Store postcodes for download
+    downloadBtn.setAttribute('data-postcodes', JSON.stringify(postcodes));
 }
 
 // Reset button functionality
 document.getElementById('reset-btn').addEventListener('click', function() {
     drawnItems.clearLayers();
     document.getElementById('postcode-list').innerHTML = '';
+    document.getElementById('download-btn').disabled = true;
+});
+
+// Download button functionality
+document.getElementById('download-btn').addEventListener('click', function() {
+    const postcodes = JSON.parse(this.getAttribute('data-postcodes'));
+    if (!postcodes || !postcodes.length) return;
+    
+    // Create CSV content
+    const csvContent = 'Postcode\n' + postcodes.join('\n');
+    
+    // Create blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    // Set up download link
+    link.href = URL.createObjectURL(blob);
+    link.download = `uk_postcodes_${new Date().toISOString().split('T')[0]}.csv`;
+    
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 });
 
 // Prevent map from zooming too far out
