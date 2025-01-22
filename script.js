@@ -16,10 +16,10 @@ let currentPostcodes = [];
 
 // Initialize postcode format toggle
 const formatToggle = document.getElementById('postcode-format-toggle');
-let useFullPostcode = true;
+let useFullPostcode = false; // Start with short codes
 
 formatToggle.addEventListener('change', function() {
-    useFullPostcode = this.checked; // When checked (right) = full codes
+    useFullPostcode = !this.checked; // When checked (right) = short codes
     if (currentPostcodes.length > 0) {
         displayPostcodes(currentPostcodes);
     }
