@@ -1,7 +1,6 @@
-// Initialize the map centered on the UK
-const map = L.map('map').setView([54.5, -4], 6);
+// Initialize map
+const map = L.map('map').setView([54.5, -2], 6);
 
-// Add OpenStreetMap tiles
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: ' OpenStreetMap contributors'
@@ -68,7 +67,6 @@ map.on(L.Draw.Event.CREATED, async function (event) {
     const postcodeList = document.getElementById('postcode-list');
     postcodeList.innerHTML = '<div class="loading">Loading postcodes...</div>';
     document.getElementById('download-csv-btn').disabled = true;
-    document.getElementById('download-xls-btn').disabled = true;
     
     try {
         await updatePostcodesFromShapes();
@@ -76,7 +74,6 @@ map.on(L.Draw.Event.CREATED, async function (event) {
         console.error('Error fetching postcodes:', error);
         postcodeList.innerHTML = '<div class="error">Error fetching postcodes. Please try again. (Error: ' + error.message + ')</div>';
         document.getElementById('download-csv-btn').disabled = true;
-        document.getElementById('download-xls-btn').disabled = true;
     }
 });
 
@@ -88,7 +85,6 @@ map.on(L.Draw.Event.DELETED, async function (event) {
         const postcodeList = document.getElementById('postcode-list');
         postcodeList.innerHTML = '';
         document.getElementById('download-csv-btn').disabled = true;
-        document.getElementById('download-xls-btn').disabled = true;
     } else {
         // If some shapes remain, update postcodes
         try {
@@ -166,7 +162,6 @@ async function updatePostcodesFromShapes() {
     if (allPostcodes.size === 0) {
         postcodeList.innerHTML = '<div class="no-results">No postcodes found in these areas</div>';
         document.getElementById('download-csv-btn').disabled = true;
-        document.getElementById('download-xls-btn').disabled = true;
         return;
     }
 
@@ -179,12 +174,10 @@ async function updatePostcodesFromShapes() {
 function displayPostcodes(postcodes) {
     const postcodeList = document.getElementById('postcode-list');
     const downloadCsvBtn = document.getElementById('download-csv-btn');
-    const downloadXlsBtn = document.getElementById('download-xls-btn');
     
     if (postcodes.length === 0) {
         postcodeList.innerHTML = '<div class="no-results">No postcodes found in these areas</div>';
         downloadCsvBtn.disabled = true;
-        downloadXlsBtn.disabled = true;
         return;
     }
     
@@ -197,7 +190,6 @@ function displayPostcodes(postcodes) {
         
     // Enable download buttons
     downloadCsvBtn.disabled = false;
-    downloadXlsBtn.disabled = false;
 }
 
 // Reset button functionality
@@ -205,7 +197,6 @@ document.getElementById('reset-btn').addEventListener('click', function() {
     drawnItems.clearLayers();
     document.getElementById('postcode-list').innerHTML = '';
     document.getElementById('download-csv-btn').disabled = true;
-    document.getElementById('download-xls-btn').disabled = true;
     currentPostcodes.clear();
 });
 
@@ -223,39 +214,6 @@ document.getElementById('download-csv-btn').addEventListener('click', function()
     // Set up download link
     link.href = URL.createObjectURL(blob);
     link.download = `uk_postcodes_${new Date().toISOString().split('T')[0]}.csv`;
-    
-    // Trigger download
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-});
-
-// Download XLS button functionality
-document.getElementById('download-xls-btn').addEventListener('click', function() {
-    if (!currentPostcodes.size) return;
-    
-    // Create XLS content with HTML table
-    const xlsContent = `
-        <html>
-            <head>
-                <meta charset="UTF-8">
-            </head>
-            <body>
-                <table>
-                    <tr><th>Postcode</th></tr>
-                    ${Array.from(currentPostcodes).sort().map(postcode => `<tr><td>${postcode}</td></tr>`).join('')}
-                </table>
-            </body>
-        </html>
-    `;
-    
-    // Create blob and download link
-    const blob = new Blob([xlsContent], { type: 'application/vnd.ms-excel' });
-    const link = document.createElement('a');
-    
-    // Set up download link
-    link.href = URL.createObjectURL(blob);
-    link.download = `uk_postcodes_${new Date().toISOString().split('T')[0]}.xls`;
     
     // Trigger download
     document.body.appendChild(link);
