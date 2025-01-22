@@ -14,6 +14,39 @@ map.addLayer(drawnItems);
 // Store current postcodes
 let currentPostcodes = [];
 
+// Initialize drawing controls
+const drawControl = new L.Control.Draw({
+    position: 'topright',
+    draw: {
+        polygon: {
+            allowIntersection: false,
+            drawError: {
+                color: '#e1e100',
+                timeout: 1000
+            },
+            shapeOptions: {
+                color: '#2196F3'
+            },
+            showArea: true
+        },
+        rectangle: {
+            shapeOptions: {
+                color: '#2196F3'
+            }
+        },
+        // Disable other drawing tools
+        polyline: false,
+        circle: false,
+        circlemarker: false,
+        marker: false
+    },
+    edit: {
+        featureGroup: drawnItems,
+        remove: true
+    }
+});
+map.addControl(drawControl);
+
 // Set UK bounds
 const ukBounds = L.latLngBounds(
     [49.8, -8.6], // Southwest corner
