@@ -126,8 +126,8 @@
                         cityMarkers.set(city.name, { marker, layer: cityMarkersLayer });
                     });
 
-                    // Update city list initially
-                    updateCityList(window.ukTownsAndCities);
+                    // Initialize empty city list
+                    document.getElementById('city-list').innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
                 } else {
                     throw new Error('Cities data not loaded');
                 }
@@ -150,7 +150,7 @@
                         cityMarkers.forEach(({ marker, layer }) => {
                             layer.removeLayer(marker);
                         });
-                        document.getElementById('city-list').innerHTML = '';
+                        document.getElementById('city-list').innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
                         document.getElementById('download-csv-btn').disabled = true;
                         document.getElementById('download-xls-btn').disabled = true;
                         return [];
@@ -395,7 +395,7 @@
                     cityMarkers.forEach(({ marker, layer }) => {
                         layer.removeLayer(marker);
                     });
-                    updateCityList(window.ukTownsAndCities);
+                    document.getElementById('city-list').innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
                     updateDownloadButtons();
                 });
 
