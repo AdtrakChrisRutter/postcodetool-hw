@@ -335,33 +335,21 @@
                     filterCitiesInShapes();
                 });
 
-                // Reset map view
+                // Reset button functionality
                 document.getElementById('reset-btn').addEventListener('click', function() {
-                    // Clear drawn items and city markers
+                    // Clear drawn shapes
                     drawnItems.clearLayers();
-                    cityMarkersLayer.clearLayers();
                     
-                    // Reset map view
-                    map.setView([52.9548, -1.1581], 8);
+                    // Clear city markers
+                    cityMarkersLayer.clearLayers();
                     
                     // Clear city list
                     const cityList = document.getElementById('city-list');
                     cityList.innerHTML = '';
                     
-                    // Disable download buttons
-                    const csvBtn = document.getElementById('download-csv-btn');
-                    const xlsBtn = document.getElementById('download-xls-btn');
-                    csvBtn.disabled = true;
-                    xlsBtn.disabled = true;
-                    
-                    // Remove any existing bounds rectangle
-                    map.eachLayer(function(layer) {
-                        if (layer instanceof L.Rectangle) {
-                            map.removeLayer(layer);
-                        }
-                    });
-
-                    console.log('Map reset completed');
+                    // Reset download buttons
+                    document.getElementById('download-csv-btn').disabled = true;
+                    document.getElementById('download-xls-btn').disabled = true;
                 });
 
                 return map;
