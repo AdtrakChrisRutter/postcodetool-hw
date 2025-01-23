@@ -11,28 +11,34 @@
 <body>
     <div class="container">
         <div class="sidebar">
-            <a href="index.html" class="back-link">← Back to Tools</a>
-            <img src="https://www.datocms-assets.com/19381/1652271729-adtrak-2.png" alt="Adtrak Logo" class="logo">
-            <div id="city-list"></div>
-            <div id="diameter-control" style="display: none;">
-                <label for="diameter-input">Circle Diameter (miles):</label>
-                <div class="diameter-input-group">
-                    <input type="number" id="diameter-input" min="1" max="500" value="30">
-                    <button id="apply-diameter-btn">Apply</button>
-                </div>
-                <div class="postcode-input-group">
-                    <label for="postcode-input">Centre Postcode:</label>
-                    <div class="input-with-button">
-                        <input type="text" id="postcode-input" placeholder="e.g. NG1 5FS">
-                        <button id="apply-postcode-btn">Move</button>
+            <div class="sidebar-header">
+                <a href="index.html" class="back-link">← Back to Tools</a>
+                <img src="https://www.datocms-assets.com/19381/1652271729-adtrak-2.png" alt="Adtrak Logo" class="logo">
+            </div>
+            <div class="sidebar-content">
+                <div id="city-list"></div>
+            </div>
+            <div class="sidebar-bottom">
+                <div id="diameter-control" style="display: none;">
+                    <label for="diameter-input">Circle Diameter (miles):</label>
+                    <div class="diameter-input-group">
+                        <input type="number" id="diameter-input" min="1" max="500" value="30">
+                        <button id="apply-diameter-btn">Apply</button>
+                    </div>
+                    <div class="postcode-input-group">
+                        <label for="postcode-input">Centre Postcode:</label>
+                        <div class="input-with-button">
+                            <input type="text" id="postcode-input" placeholder="e.g. NG1 5FS">
+                            <button id="apply-postcode-btn">Move</button>
+                        </div>
                     </div>
                 </div>
+                <div class="button-group">
+                    <button id="download-csv-btn" disabled>Download CSV</button>
+                    <button id="download-xls-btn" disabled>Download XLS</button>
+                </div>
+                <button id="reset-btn">Reset Map</button>
             </div>
-            <div class="button-group">
-                <button id="download-csv-btn" disabled>Download CSV</button>
-                <button id="download-xls-btn" disabled>Download XLS</button>
-            </div>
-            <button id="reset-btn">Reset Map</button>
         </div>
         <div id="map"></div>
     </div>
@@ -330,24 +336,49 @@
                 // Function to update city list display
                 function updateCityList(cities) {
                     const cityList = document.getElementById('city-list');
-                    const categorizedCities = window.categorizeCities(cities);
-                    const categories = ['Major City', 'Large City', 'Medium City', 'Small City', 'Town'];
-                    
-                    cityList.innerHTML = categories.map(category => {
-                        const citiesInCategory = categorizedCities.filter(city => city.category === category);
-                        if (citiesInCategory.length === 0) return '';
-                        
-                        return `
-                            <div class="category">
-                                <h3>${category}</h3>
-                                ${citiesInCategory.map(city => `
-                                    <div class="city-item">
-                                        ${city.name} (${city.phoneCode})
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `;
-                    }).join('');
+                    const csvBtn = document.getElementById('download-csv-btn');
+                    const xlsBtn = document.getElementById('download-xls-btn');
+
+                    if (cities.length > 0) {
+                        cityList.innerHTML = cities.map(city => 
+                            `<div class="city-item" data-city-name="${city.name}">
+                                <button class="remove-city" aria-label="Remove ${city.name}">&times;</button>
+                                <div class="city-name">${city.name} (${city.phoneCode})</div>
+                                <div class="city-population">Population: ${city.population.toLocaleString()}</div>
+                            </div>`
+                        ).join('');
+
+                        // Add event listeners for remove buttons
+                        document.querySelectorAll('.remove-city').forEach(button => {
+                            button.addEventListener('click', function(e) {
+                                const cityItem = e.target.closest('.city-item');
+                                const cityName = cityItem.dataset.cityName;
+                                
+                                // Remove the city item from display
+                                cityItem.remove();
+                                
+                                // Remove the marker from the map
+                                const { marker, layer } = cityMarkers.get(cityName);
+                                layer.removeLayer(marker);
+                                
+                                // Update the cities list
+                                const remainingCities = Array.from(document.querySelectorAll('.city-item'))
+                                    .map(item => cities.find(city => city.name === item.dataset.cityName))
+                                    .filter(Boolean);
+                                
+                                // Update download buttons state
+                                csvBtn.disabled = remainingCities.length === 0;
+                                xlsBtn.disabled = remainingCities.length === 0;
+                                
+                                // Show "no results" if all cities are removed
+                                if (remainingCities.length === 0) {
+                                    cityList.innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
+                                }
+                            });
+                        });
+                    } else {
+                        cityList.innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
+                    }
                 }
 
                 // Function to update download buttons state
