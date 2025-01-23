@@ -15,8 +15,6 @@ function categorizeCities(cities) {
     });
 }
 
-import { getAreaCode } from './uk_area_codes.js';
-
 // UK Towns and Cities with population data, area codes, and coordinates
 const ukTownsAndCities = [
     // Major Cities (Population > 500,000)
@@ -236,7 +234,12 @@ const ukTownsAndCities = [
 ];
 
 ukTownsAndCities.forEach(city => {
-    city.areaCode = getAreaCode(city.name);
+    city.areaCode = window.getAreaCode(city.name);
 });
 
+console.log('ukTownsAndCities loaded:', ukTownsAndCities.length);
+
 const categorizedCities = categorizeCities(ukTownsAndCities);
+
+// Expose ukTownsAndCities globally
+window.ukTownsAndCities = ukTownsAndCities;

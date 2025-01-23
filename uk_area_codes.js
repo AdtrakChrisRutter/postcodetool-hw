@@ -64,4 +64,6 @@ function getAreaCode(cityName) {
     return ukAreaCodes['default'];
 }
 
-export { ukAreaCodes, getAreaCode };
+// Expose functions and data globally
+window.ukAreaCodes = ukAreaCodes;
+window.getAreaCode = getAreaCode;
