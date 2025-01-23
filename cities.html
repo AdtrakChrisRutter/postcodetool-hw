@@ -80,8 +80,8 @@
 
                 // Initialize map
                 const map = L.map('map', {
-                    center: [54.5, -2],
-                    zoom: 6,
+                    center: [52.9548, -1.1581],
+                    zoom: 8,
                     zoomControl: true,
                     attributionControl: true
                 });
@@ -104,20 +104,22 @@
                 const drawnItems = new L.FeatureGroup();
                 map.addLayer(drawnItems);
 
-                // City markers layer group
-                const cityMarkersLayer = L.layerGroup().addTo(map);
-
-                // Set UK bounds
-                const ukBounds = L.latLngBounds(
-                    [49.8, -8.6], // Southwest corner
-                    [60.9, 1.8]   // Northeast corner
-                );
-
-                // Restrict map to UK
-                map.setMaxBounds(ukBounds);
-                map.on('drag', function() {
-                    map.panInsideBounds(ukBounds, { animate: false });
-                });
+                // Override Leaflet.Draw strings to remove tooltips
+                L.drawLocal.draw.handlers.polygon.tooltip = {
+                    start: '',
+                    cont: '',
+                    end: ''
+                };
+                L.drawLocal.draw.handlers.rectangle.tooltip = {
+                    start: ''
+                };
+                L.drawLocal.edit.handlers.edit.tooltip = {
+                    text: '',
+                    subtext: ''
+                };
+                L.drawLocal.edit.handlers.remove.tooltip = {
+                    text: ''
+                };
 
                 // Initialize drawing controls
                 const drawControl = new L.Control.Draw({
@@ -132,13 +134,21 @@
                             shapeOptions: {
                                 color: '#2196F3'
                             },
-                            showArea: true
+                            showArea: true,
+                            guideLayers: [],
+                            tooltips: {
+                                start: '',
+                                cont: '',
+                                end: ''
+                            }
                         },
                         rectangle: {
                             shapeOptions: {
                                 color: '#2196F3'
                             },
-                            repeatMode: true  // Allow drawing multiple rectangles
+                            tooltips: {
+                                start: ''
+                            }
                         },
                         // Disable other drawing tools
                         polyline: false,
@@ -148,10 +158,31 @@
                     },
                     edit: {
                         featureGroup: drawnItems,
-                        remove: true
+                        remove: true,
+                        edit: {
+                            selectedPathOptions: {
+                                maintainColor: true,
+                                opacity: 0.3
+                            }
+                        }
                     }
                 });
                 map.addControl(drawControl);
+
+                // City markers layer group
+                const cityMarkersLayer = L.layerGroup().addTo(map);
+
+                // Set UK bounds
+                const ukBounds = L.latLngBounds(
+                    [49.8, -8.6], // Southwest corner
+                    [60.9, 1.8]   // Northeast corner
+                );
+
+                // Restrict map to UK
+                map.setMaxBounds(ukBounds);
+                map.on('drag', function() {
+                    map.panInsideBounds(ukBounds, { animate: false });
+                });
 
                 // Prevent map from zooming too far out
                 map.setMinZoom(5);
@@ -311,7 +342,7 @@
                     cityMarkersLayer.clearLayers();
                     
                     // Reset map view
-                    map.setView([54.5, -2], 6);
+                    map.setView([52.9548, -1.1581], 8);
                     
                     // Clear city list
                     const cityList = document.getElementById('city-list');

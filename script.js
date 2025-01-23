@@ -1,5 +1,5 @@
 // Initialize map
-const map = L.map('map').setView([54.5, -2], 6);
+const map = L.map('map').setView([52.9548, -1.1581], 8);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -12,6 +12,23 @@ map.addLayer(drawnItems);
 
 // Store current postcodes
 let currentPostcodes = new Set();
+
+// Override Leaflet.Draw strings to remove tooltips
+L.drawLocal.draw.handlers.polygon.tooltip = {
+    start: '',
+    cont: '',
+    end: ''
+};
+L.drawLocal.draw.handlers.rectangle.tooltip = {
+    start: ''
+};
+L.drawLocal.edit.handlers.edit.tooltip = {
+    text: '',
+    subtext: ''
+};
+L.drawLocal.edit.handlers.remove.tooltip = {
+    text: ''
+};
 
 // Initialize drawing controls
 const drawControl = new L.Control.Draw({
@@ -26,11 +43,20 @@ const drawControl = new L.Control.Draw({
             shapeOptions: {
                 color: '#2196F3'
             },
-            showArea: true
+            showArea: true,
+            guideLayers: [],
+            tooltips: {
+                start: '',
+                cont: '',
+                end: ''
+            }
         },
         rectangle: {
             shapeOptions: {
                 color: '#2196F3'
+            },
+            tooltips: {
+                start: ''
             }
         },
         // Disable other drawing tools
@@ -41,7 +67,13 @@ const drawControl = new L.Control.Draw({
     },
     edit: {
         featureGroup: drawnItems,
-        remove: true
+        remove: true,
+        edit: {
+            selectedPathOptions: {
+                maintainColor: true,
+                opacity: 0.3
+            }
+        }
     }
 });
 map.addControl(drawControl);

@@ -1,5 +1,5 @@
-// Initialize the map centered on the UK
-const map = L.map('map').setView([54.5, -4], 6);
+// Initialize the map centered on Nottingham
+const map = L.map('map').setView([52.9548, -1.1581], 3);
 
 // Add OpenStreetMap tiles
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -12,6 +12,23 @@ const drawnItems = new L.FeatureGroup();
 const cityMarkers = new L.FeatureGroup();
 map.addLayer(drawnItems);
 map.addLayer(cityMarkers);
+
+// Override Leaflet.Draw strings to remove tooltips
+L.drawLocal.draw.handlers.polygon.tooltip = {
+    start: '',
+    cont: '',
+    end: ''
+};
+L.drawLocal.draw.handlers.rectangle.tooltip = {
+    start: ''
+};
+L.drawLocal.edit.handlers.edit.tooltip = {
+    text: '',
+    subtext: ''
+};
+L.drawLocal.edit.handlers.remove.tooltip = {
+    text: ''
+};
 
 // Initialize drawing controls
 const drawControl = new L.Control.Draw({
@@ -26,11 +43,20 @@ const drawControl = new L.Control.Draw({
             shapeOptions: {
                 color: '#2196F3'
             },
-            showArea: true
+            showArea: true,
+            guideLayers: [],
+            tooltips: {
+                start: '',
+                cont: '',
+                end: ''
+            }
         },
         rectangle: {
             shapeOptions: {
                 color: '#2196F3'
+            },
+            tooltips: {
+                start: ''
             }
         },
         // Disable other drawing tools
@@ -41,7 +67,13 @@ const drawControl = new L.Control.Draw({
     },
     edit: {
         featureGroup: drawnItems,
-        remove: true
+        remove: true,
+        edit: {
+            selectedPathOptions: {
+                maintainColor: true,
+                opacity: 0.3
+            }
+        }
     }
 });
 map.addControl(drawControl);
@@ -80,29 +112,53 @@ function createCityMarker(city) {
 
 // Function to check if a city is inside any of the drawn shapes
 function isCityInShapes(city, layers) {
-    console.log('Checking city:', city.name, 'at', city.latitude, city.longitude);
-    
     if (!city.latitude || !city.longitude) {
         console.log('City has no coordinates:', city.name);
         return false;
     }
     
+    const cityLatLng = L.latLng(city.latitude, city.longitude);
+    
     for (const layer of layers) {
-        if (layer instanceof L.Polygon || layer instanceof L.Rectangle) {
-            const bounds = layer.getBounds();
-            const cityLatLng = L.latLng(city.latitude, city.longitude);
-            
-            console.log('Shape bounds:', bounds);
-            console.log('City position:', cityLatLng);
-            
-            if (bounds.contains(cityLatLng)) {
-                console.log('City is inside shape:', city.name);
+        // For rectangles, use bounds check
+        if (layer instanceof L.Rectangle) {
+            if (layer.getBounds().contains(cityLatLng)) {
+                console.log('City is inside rectangle:', city.name);
+                return true;
+            }
+        }
+        // For polygons, use proper point-in-polygon check
+        else if (layer instanceof L.Polygon) {
+            const latLngs = layer.getLatLngs()[0];
+            if (isPointInPolygon(cityLatLng, latLngs)) {
+                console.log('City is inside polygon:', city.name);
                 return true;
             }
         }
     }
-    console.log('City is outside all shapes:', city.name);
     return false;
+}
+
+// Helper function to check if a point is inside a polygon
+function isPointInPolygon(point, polygon) {
+    // Ray casting algorithm
+    let inside = false;
+    let j = polygon.length - 1;
+
+    for (let i = 0; i < polygon.length; i++) {
+        const xi = polygon[i].lng;
+        const yi = polygon[i].lat;
+        const xj = polygon[j].lng;
+        const yj = polygon[j].lat;
+
+        const intersect = ((yi > point.lat) !== (yj > point.lat))
+            && (point.lng < (xj - xi) * (point.lat - yi) / (yj - yi) + xi);
+
+        if (intersect) inside = !inside;
+        j = i;
+    }
+
+    return inside;
 }
 
 // Function to update cities list based on drawn shapes and population filter
