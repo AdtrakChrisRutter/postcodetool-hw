@@ -14,6 +14,20 @@
             <a href="index.html" class="back-link">← Back to Tools</a>
             <img src="https://www.datocms-assets.com/19381/1652271729-adtrak-2.png" alt="Adtrak Logo" class="logo">
             <div id="city-list"></div>
+            <div id="diameter-control" style="display: none;">
+                <label for="diameter-input">Circle Diameter (miles):</label>
+                <div class="diameter-input-group">
+                    <input type="number" id="diameter-input" min="1" max="500" value="30">
+                    <button id="apply-diameter-btn">Apply</button>
+                </div>
+                <div class="postcode-input-group">
+                    <label for="postcode-input">Centre Postcode:</label>
+                    <div class="input-with-button">
+                        <input type="text" id="postcode-input" placeholder="e.g. NG1 5FS">
+                        <button id="apply-postcode-btn">Move</button>
+                    </div>
+                </div>
+            </div>
             <div class="button-group">
                 <button id="download-csv-btn" disabled>Download CSV</button>
                 <button id="download-xls-btn" disabled>Download XLS</button>
@@ -23,103 +37,36 @@
         <div id="map"></div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" onerror="console.error('Failed to load Leaflet')"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" onerror="console.error('Failed to load Leaflet Draw')"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js" onerror="console.error('Failed to load XLSX')"></script>
-    <script src="uk_cities_data.js" onerror="console.error('Failed to load uk_cities_data.js')"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+    <script src="uk_cities_data.js"></script>
     <script>
-        // Global error handling
-        window.addEventListener('error', function(event) {
-            console.error('Unhandled error:', event.error);
-            alert('An unexpected error occurred: ' + event.error);
-        });
-
-        // Ensure all required libraries are loaded
-        function checkLibraries() {
-            const requiredLibraries = [
-                { name: 'Leaflet', check: () => typeof L !== 'undefined' },
-                { name: 'Leaflet Draw', check: () => L.Control && L.Control.Draw },
-                { name: 'XLSX', check: () => typeof XLSX !== 'undefined' }
-            ];
-
-            const missingLibraries = requiredLibraries
-                .filter(lib => !lib.check())
-                .map(lib => lib.name);
-
-            if (missingLibraries.length > 0) {
-                console.error('Missing libraries:', missingLibraries);
-                alert('Failed to load required libraries: ' + missingLibraries.join(', '));
-                return false;
-            }
-            return true;
-        }
-
-        // Use global ukTownsAndCities directly
-        const cities = window.ukTownsAndCities || [];
-        console.log('Cities loaded:', cities.length);
-        
-        // Robust error checking
-        if (cities.length === 0) {
-            console.error('ERROR: No cities loaded!');
-            alert('Failed to load city data. Please refresh the page or contact support.');
-        }
-
-        // Verify global variables
-        console.log('Global Variables:', {
-            ukTownsAndCities: window.ukTownsAndCities,
-            getAreaCode: window.getAreaCode
-        });
-
-        // Wrap map initialization in try-catch
-        function initializeMap() {
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
             try {
-                // Check if libraries are loaded
-                if (!checkLibraries()) {
-                    return null;
-                }
-
                 // Initialize map
-                const map = L.map('map', {
-                    center: [52.9548, -1.1581],
-                    zoom: 8,
-                    zoomControl: true,
-                    attributionControl: true
-                });
-
-                // Add error handling to map
-                map.on('error', function(e) {
-                    console.error('Map error:', e);
-                });
-
-                // Add tile layer with error handling
+                const map = L.map('map').setView([52.9548, -1.1581], 8);
+                
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
-                    attribution: ' OpenStreetMap contributors',
-                    errorTileUrl: '' // Placeholder for error tile
-                }).addTo(map).on('tileerror', function(error, tile) {
-                    console.error('Tile load error:', error, tile);
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+
+                // Set UK bounds
+                const ukBounds = L.latLngBounds(
+                    [49.8, -8.6], // Southwest corner
+                    [60.9, 1.8]   // Northeast corner
+                );
+
+                map.setMaxBounds(ukBounds);
+                map.on('drag', function() {
+                    map.panInsideBounds(ukBounds, { animate: false });
                 });
 
-                // Initialize drawing controls
-                const drawnItems = new L.FeatureGroup();
-                map.addLayer(drawnItems);
-
-                // Override Leaflet.Draw strings to remove tooltips
-                L.drawLocal.draw.handlers.polygon.tooltip = {
-                    start: '',
-                    cont: '',
-                    end: ''
-                };
-                L.drawLocal.draw.handlers.rectangle.tooltip = {
-                    start: ''
-                };
-                L.drawLocal.edit.handlers.edit.tooltip = {
-                    text: '',
-                    subtext: ''
-                };
-                L.drawLocal.edit.handlers.remove.tooltip = {
-                    text: ''
-                };
+                // Initialize layers
+                const drawnItems = new L.FeatureGroup().addTo(map);
+                let cityMarkers = new Map(); // Store markers for each city
 
                 // Initialize drawing controls
                 const drawControl = new L.Control.Draw({
@@ -134,25 +81,22 @@
                             shapeOptions: {
                                 color: '#2196F3'
                             },
-                            showArea: true,
-                            guideLayers: [],
-                            tooltips: {
-                                start: '',
-                                cont: '',
-                                end: ''
-                            }
+                            showArea: true
                         },
                         rectangle: {
                             shapeOptions: {
                                 color: '#2196F3'
-                            },
-                            tooltips: {
-                                start: ''
                             }
+                        },
+                        circle: {
+                            shapeOptions: {
+                                color: '#2196F3'
+                            },
+                            showRadius: true,
+                            metric: true
                         },
                         // Disable other drawing tools
                         polyline: false,
-                        circle: false,
                         circlemarker: false,
                         marker: false
                     },
@@ -169,27 +113,31 @@
                 });
                 map.addControl(drawControl);
 
-                // City markers layer group
-                const cityMarkersLayer = L.layerGroup().addTo(map);
+                // Add city markers if data is loaded
+                let selectedCities = new Set();
+                
+                if (window.ukTownsAndCities && Array.isArray(window.ukTownsAndCities)) {
+                    const cityMarkersLayer = L.layerGroup().addTo(map);
+                    
+                    // Create markers but don't add them to the map yet
+                    window.ukTownsAndCities.forEach(city => {
+                        const marker = L.marker([city.latitude, city.longitude])
+                            .bindPopup(`<b>${city.name}</b><br>Population: ${city.population.toLocaleString()}<br>Phone Code: ${city.phoneCode}`);
+                        cityMarkers.set(city.name, { marker, layer: cityMarkersLayer });
+                    });
 
-                // Set UK bounds
-                const ukBounds = L.latLngBounds(
-                    [49.8, -8.6], // Southwest corner
-                    [60.9, 1.8]   // Northeast corner
-                );
+                    // Update city list initially
+                    updateCityList(window.ukTownsAndCities);
+                } else {
+                    throw new Error('Cities data not loaded');
+                }
 
-                // Restrict map to UK
-                map.setMaxBounds(ukBounds);
-                map.on('drag', function() {
-                    map.panInsideBounds(ukBounds, { animate: false });
-                });
-
-                // Prevent map from zooming too far out
-                map.setMinZoom(5);
-
-                // Enable touch events for mobile devices
-                if (L.Browser.touch) {
-                    L.DomEvent.disableClickPropagation(map._container);
+                // Function to check if a point is within a circle
+                function isPointInCircle(point, circle) {
+                    const center = circle.getLatLng();
+                    const radius = circle.getRadius(); // in meters
+                    const distance = point.distanceTo(center);
+                    return distance <= radius;
                 }
 
                 // Function to filter cities within multiple shapes
@@ -199,7 +147,9 @@
                     
                     // If no shapes, clear everything
                     if (layers.length === 0) {
-                        cityMarkersLayer.clearLayers();
+                        cityMarkers.forEach(({ marker, layer }) => {
+                            layer.removeLayer(marker);
+                        });
                         document.getElementById('city-list').innerHTML = '';
                         document.getElementById('download-csv-btn').disabled = true;
                         document.getElementById('download-xls-btn').disabled = true;
@@ -207,17 +157,17 @@
                     }
 
                     // Filter cities that are within ANY of the drawn shapes
-                    const filteredCities = cities.filter(city => {
-                        const lat = Number(city.latitude);
-                        const lng = Number(city.longitude);
+                    const filteredCities = window.ukTownsAndCities.filter(city => {
+                        const cityLatLng = L.latLng(city.latitude, city.longitude);
                         
                         // Check if city is within any of the drawn shapes
                         return layers.some(layer => {
-                            const bounds = layer.getBounds();
-                            return (lng >= bounds.getSouthWest().lng && 
-                                    lng <= bounds.getNorthEast().lng &&
-                                    lat >= bounds.getSouthWest().lat && 
-                                    lat <= bounds.getNorthEast().lat);
+                            if (layer instanceof L.Circle) {
+                                return isPointInCircle(cityLatLng, layer);
+                            } else {
+                                const bounds = layer.getBounds();
+                                return bounds.contains(cityLatLng);
+                            }
                         });
                     });
 
@@ -225,146 +175,233 @@
                     const uniqueCities = Array.from(new Set(filteredCities.map(city => city.name)))
                         .map(name => filteredCities.find(city => city.name === name));
 
-                    // Log filtered cities
-                    console.log('Filtered Cities in Multiple Shapes:', {
-                        total: uniqueCities.length,
-                        names: uniqueCities.map(city => city.name)
+                    // Remove all markers first
+                    cityMarkers.forEach(({ marker, layer }) => {
+                        layer.removeLayer(marker);
                     });
 
-                    // Clear previous markers
-                    cityMarkersLayer.clearLayers();
-
-                    // Add markers for filtered cities
+                    // If city is in any shape, show its marker
                     uniqueCities.forEach(city => {
-                        const marker = L.circleMarker(
-                            [city.latitude, city.longitude], 
-                            {
-                                radius: 8,
-                                fillColor: '#FF4438', // Adtrak red
-                                color: '#000',
-                                weight: 1,
-                                opacity: 1,
-                                fillOpacity: 0.8
-                            }
-                        ).bindTooltip(city.name, {
-                            permanent: false,
-                            direction: 'top'
-                        });
-                        
-                        cityMarkersLayer.addLayer(marker);
+                        const { marker, layer: markerLayer } = cityMarkers.get(city.name);
+                        markerLayer.addLayer(marker);
                     });
 
-                    // Update city list in sidebar
-                    const cityList = document.getElementById('city-list');
-                    const csvBtn = document.getElementById('download-csv-btn');
-                    const xlsBtn = document.getElementById('download-xls-btn');
-
-                    if (uniqueCities.length > 0) {
-                        cityList.innerHTML = uniqueCities.map(city => 
-                            `<div class="city-item">
-                                ${city.name}
-                                <small class="city-population">Pop: ${city.population.toLocaleString()}</small>
-                                <span class="city-code">${city.phoneCode}</span>
-                            </div>`
-                        ).join('');
-                        
-                        // Enable download buttons
-                        csvBtn.disabled = false;
-                        xlsBtn.disabled = false;
-
-                        // Update download event listeners with new cities
-                        csvBtn.onclick = function() {
-                            const csvContent = [
-                                'Name,Population,Phone Code,Latitude,Longitude',
-                                ...uniqueCities.map(city => 
-                                    `${city.name},${city.population},${city.phoneCode},${city.latitude},${city.longitude}`
-                                )
-                            ].join('\n');
-
-                            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                            const link = document.createElement('a');
-                            const url = URL.createObjectURL(blob);
-                            link.setAttribute('href', url);
-                            link.setAttribute('download', 'uk_cities.csv');
-                            link.style.display = 'none';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                        };
-
-                        xlsBtn.onclick = function() {
-                            const wb = XLSX.utils.book_new();
-                            const wsData = [
-                                ['Name', 'Population', 'Phone Code', 'Latitude', 'Longitude'],
-                                ...uniqueCities.map(city => [
-                                    city.name, 
-                                    city.population, 
-                                    city.phoneCode, 
-                                    city.latitude, 
-                                    city.longitude
-                                ])
-                            ];
-
-                            const ws = XLSX.utils.aoa_to_sheet(wsData);
-                            XLSX.utils.book_append_sheet(wb, ws, 'UK Cities');
-                            XLSX.writeFile(wb, 'uk_cities.xlsx');
-                        };
-                    } else {
-                        cityList.innerHTML = '<div class="no-results">No cities found in this area.</div>';
-                        csvBtn.disabled = true;
-                        xlsBtn.disabled = true;
-                    }
+                    updateCityList(uniqueCities);
+                    updateDownloadButtons();
 
                     return uniqueCities;
                 }
 
+                // Function to convert miles to meters
+                function milesToMeters(miles) {
+                    return miles * 1609.34;
+                }
+
+                // Function to convert meters to miles
+                function metersToMiles(meters) {
+                    return meters / 1609.34;
+                }
+
+                // Function to update circle diameter
+                function updateCircleDiameter() {
+                    const diameterControl = document.getElementById('diameter-control');
+                    const circles = drawnItems.getLayers().filter(layer => layer instanceof L.Circle);
+                    
+                    if (circles.length > 0) {
+                        diameterControl.style.display = 'block';
+                        
+                        // Update input value to show current diameter of last circle
+                        const currentRadius = circles[circles.length - 1].getRadius();
+                        document.getElementById('diameter-input').value = Math.round(metersToMiles(currentRadius * 2));
+                    } else {
+                        diameterControl.style.display = 'none';
+                    }
+                }
+
+                // Function to fetch coordinates for a UK postcode
+                async function getPostcodeCoordinates(postcode) {
+                    try {
+                        const response = await fetch(`https://api.postcodes.io/postcodes/${postcode}`);
+                        if (!response.ok) {
+                            throw new Error('Invalid postcode');
+                        }
+                        const data = await response.json();
+                        return {
+                            lat: data.result.latitude,
+                            lng: data.result.longitude
+                        };
+                    } catch (error) {
+                        throw new Error('Failed to find postcode location');
+                    }
+                }
+
+                // Handle diameter input
+                document.getElementById('apply-diameter-btn').addEventListener('click', function() {
+                    const circles = drawnItems.getLayers().filter(layer => layer instanceof L.Circle);
+                    if (circles.length > 0) {
+                        const diameter = parseFloat(document.getElementById('diameter-input').value);
+                        const radius = milesToMeters(diameter / 2);
+                        
+                        // Update all circles
+                        circles.forEach(circle => {
+                            circle.setRadius(radius);
+                        });
+                        
+                        // Refilter cities based on new circle size
+                        filterCitiesInShapes();
+                    }
+                });
+
+                // Handle postcode input
+                document.getElementById('apply-postcode-btn').addEventListener('click', async function() {
+                    const postcode = document.getElementById('postcode-input').value.trim();
+                    if (!postcode) {
+                        alert('Please enter a postcode');
+                        return;
+                    }
+
+                    try {
+                        const coords = await getPostcodeCoordinates(postcode);
+                        const circles = drawnItems.getLayers().filter(layer => layer instanceof L.Circle);
+                        
+                        if (circles.length > 0) {
+                            // Get the current radius of the first circle
+                            const radius = circles[0].getRadius();
+                            
+                            // Remove existing circles
+                            circles.forEach(circle => drawnItems.removeLayer(circle));
+                            
+                            // Create new circle at postcode location
+                            const newCircle = new L.Circle([coords.lat, coords.lng], {
+                                radius: radius,
+                                color: '#2196F3'
+                            });
+                            
+                            drawnItems.addLayer(newCircle);
+                            
+                            // Center map on new location
+                            map.setView([coords.lat, coords.lng], 10);
+                            
+                            // Update cities within the new circle
+                            filterCitiesInShapes();
+                        } else {
+                            // If no circle exists, create one with default radius (15 miles)
+                            const defaultRadius = milesToMeters(15);
+                            const newCircle = new L.Circle([coords.lat, coords.lng], {
+                                radius: defaultRadius,
+                                color: '#2196F3'
+                            });
+                            
+                            drawnItems.addLayer(newCircle);
+                            map.setView([coords.lat, coords.lng], 10);
+                            filterCitiesInShapes();
+                            updateCircleDiameter();
+                        }
+                    } catch (error) {
+                        alert(error.message);
+                    }
+                });
+
+                // Add keypress event for postcode input
+                document.getElementById('postcode-input').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        document.getElementById('apply-postcode-btn').click();
+                    }
+                });
+
                 // Handle drawing events
-                map.on(L.Draw.Event.CREATED, function (event) {
+                map.on(L.Draw.Event.CREATED, function(event) {
                     const layer = event.layer;
-                    
-                    // Add the new layer to the drawn items group
                     drawnItems.addLayer(layer);
-                    
-                    // Filter and display cities
                     filterCitiesInShapes();
+                    updateCircleDiameter();
                 });
 
-                // Handle layer deletion
-                map.on(L.Draw.Event.DELETED, function () {
-                    // Refilter cities after deletion
+                map.on(L.Draw.Event.DELETED, function() {
                     filterCitiesInShapes();
+                    updateCircleDiameter();
                 });
 
-                // Reset button functionality
-                document.getElementById('reset-btn').addEventListener('click', function() {
-                    // Clear drawn shapes
-                    drawnItems.clearLayers();
-                    
-                    // Clear city markers
-                    cityMarkersLayer.clearLayers();
-                    
-                    // Clear city list
+                map.on(L.Draw.Event.EDITED, function() {
+                    filterCitiesInShapes();
+                    updateCircleDiameter();
+                });
+
+                // Function to update city list display
+                function updateCityList(cities) {
                     const cityList = document.getElementById('city-list');
-                    cityList.innerHTML = '';
+                    const categorizedCities = window.categorizeCities(cities);
+                    const categories = ['Major City', 'Large City', 'Medium City', 'Small City', 'Town'];
                     
-                    // Reset download buttons
-                    document.getElementById('download-csv-btn').disabled = true;
-                    document.getElementById('download-xls-btn').disabled = true;
+                    cityList.innerHTML = categories.map(category => {
+                        const citiesInCategory = categorizedCities.filter(city => city.category === category);
+                        if (citiesInCategory.length === 0) return '';
+                        
+                        return `
+                            <div class="category">
+                                <h3>${category}</h3>
+                                ${citiesInCategory.map(city => `
+                                    <div class="city-item">
+                                        ${city.name} (${city.phoneCode})
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                // Function to update download buttons state
+                function updateDownloadButtons() {
+                    const hasSelection = selectedCities.size > 0;
+                    document.getElementById('download-csv-btn').disabled = !hasSelection;
+                    document.getElementById('download-xls-btn').disabled = !hasSelection;
+                }
+
+                // Handle download buttons
+                document.getElementById('download-csv-btn').addEventListener('click', () => {
+                    const csvContent = Array.from(selectedCities)
+                        .map(city => `${city.name},${city.phoneCode},${city.population},${city.latitude},${city.longitude}`)
+                        .join('\n');
+                    
+                    const blob = new Blob([`Name,Phone Code,Population,Latitude,Longitude\n${csvContent}`], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'selected_cities.csv';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
                 });
 
-                return map;
-            } catch (error) {
-                console.error('Map initialization failed:', error);
-                alert('Failed to initialize map. Please refresh the page.');
-                return null;
-            }
-        }
+                document.getElementById('download-xls-btn').addEventListener('click', () => {
+                    const data = Array.from(selectedCities).map(city => ({
+                        Name: city.name,
+                        'Phone Code': city.phoneCode,
+                        Population: city.population,
+                        Latitude: city.latitude,
+                        Longitude: city.longitude
+                    }));
+                    
+                    const ws = XLSX.utils.json_to_sheet(data);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Cities');
+                    XLSX.writeFile(wb, 'selected_cities.xlsx');
+                });
 
-        // Initialize map when DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            const map = initializeMap();
-            if (!map) {
-                console.error('Map initialization failed');
+                // Handle reset button
+                document.getElementById('reset-btn').addEventListener('click', () => {
+                    drawnItems.clearLayers();
+                    selectedCities.clear();
+                    // Remove all markers
+                    cityMarkers.forEach(({ marker, layer }) => {
+                        layer.removeLayer(marker);
+                    });
+                    updateCityList(window.ukTownsAndCities);
+                    updateDownloadButtons();
+                });
+
+            } catch (error) {
+                console.error('Map initialization error:', error);
+                alert('Failed to initialize map. Please refresh the page.');
             }
         });
     </script>

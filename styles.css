@@ -16,31 +16,30 @@ body {
 
 /* Container styles */
 .container {
-    flex: 1;
     display: flex;
-    overflow: hidden;
+    height: 100vh;
+    width: 100%;
 }
 
 .sidebar {
     width: 300px;
+    background-color: #fff;
     padding: 20px;
-    background-color: #f8f9fa;
-    border-right: 1px solid #dee2e6;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
+    gap: 20px;
     overflow-y: auto;
 }
 
 .logo {
     width: 150px;
-    height: auto;
-    margin: 0 auto 20px;
-    display: block;
+    margin-bottom: 20px;
 }
 
 #map {
-    flex: 1;
-    background-color: #e9ecef;
+    flex-grow: 1;
+    height: 100%;
 }
 
 #postcode-list {
@@ -64,83 +63,50 @@ body {
 
 .button-group {
     display: flex;
+    flex-direction: column;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-top: auto;
 }
 
-.button-group button {
-    flex: 1;
-    margin-bottom: 0 !important;
-}
-
-#download-csv-btn,
-#download-xls-btn,
-#reset-btn {
+button {
     padding: 10px;
-    color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.2s;
-    width: 100%;
-    margin-bottom: 10px;
+    font-size: 14px;
+    transition: background-color 0.3s;
 }
 
-#download-csv-btn,
-#download-xls-btn {
-    background-color: #FF4438;
-}
-
-#download-csv-btn:hover,
-#download-xls-btn:hover {
-    background-color: #e63e33;
-}
-
-#download-csv-btn:disabled,
-#download-xls-btn:disabled {
-    background-color: #6c757d;
+button:disabled {
+    background-color: #ccc;
     cursor: not-allowed;
-    opacity: 0.65;
+}
+
+#download-csv-btn, #download-xls-btn {
+    background-color: #FF4438;
+    color: white;
+}
+
+#download-csv-btn:hover:not(:disabled), 
+#download-xls-btn:hover:not(:disabled) {
+    background-color: #e63c31;
 }
 
 #reset-btn {
-    background-color: #6c757d;
+    background-color: #333;
+    color: white;
 }
 
 #reset-btn:hover {
-    background-color: #5a6268;
-}
-
-.loading, .no-results, .error {
-    text-align: center;
-    padding: 15px;
-    color: #666;
-}
-
-.error {
-    color: #dc3545;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: 4px;
-}
-
-.no-results {
-    color: #666;
-    text-align: center;
-    padding: 20px;
+    background-color: #444;
 }
 
 .back-link {
-    display: inline-block;
-    margin-bottom: 20px;
-    color: #FF4438;
+    color: #333;
     text-decoration: none;
-    font-weight: bold;
-}
-
-.back-link:hover {
-    text-decoration: underline;
+    font-size: 14px;
+    margin-bottom: 10px;
+    display: inline-block;
 }
 
 #city-list {
@@ -154,42 +120,227 @@ body {
 }
 
 .city-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
-    background-color: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    margin: 4px 0;
-    padding: 8px 12px;
-    color: #333;
-    position: relative;
+    gap: 5px;
 }
 
-.city-code {
-    position: absolute;
-    top: 8px;
-    right: 12px;
-    color: #666;
-    font-size: 0.9em;
+.city-info {
+    flex: 1;
+}
+
+.city-name {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 2px;
 }
 
 .city-population {
-    display: block;
     color: #666;
-    font-size: 0.8em;
-    margin-top: 4px;
+    font-size: 12px;
 }
 
-.city-item:last-child {
+.city-code {
+    color: #FF4438;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.city-area-code {
+    color: #FF4438;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.exclude-city {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    background: #f8f9fa;
+    color: #999;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.exclude-city:hover {
+    background: #ff4438;
+    color: white;
+}
+
+.city-counters {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.city-counters div {
+    margin-bottom: 2px;
+}
+
+.city-counters div:last-child {
     margin-bottom: 0;
+    color: #ff4438;
 }
 
-.loading, .no-cities {
-    text-align: center;
-    color: #666;
+#clear-exclusions-btn {
+    background-color: #6c757d;
+}
+
+#clear-exclusions-btn:hover:not(:disabled) {
+    background-color: #5a6268;
+}
+
+#clear-exclusions-btn:disabled {
+    background-color: #dee2e6;
+    cursor: not-allowed;
+}
+
+/* Radius Control Styles */
+.radius-control {
+    background: white;
     padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    border: 1px solid #dee2e6;
+}
+
+.radius-input-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.radius-control label {
+    flex: 1 1 auto;
+    margin: 0;
+    color: #333;
+    min-width: 140px;
+}
+
+.radius-control input {
+    flex: 0 1 80px;
+    padding: 8px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.radius-control button {
+    flex: 0 0 auto;
+    padding: 8px 15px;
+    background-color: #FF4438;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 14px;
+}
+
+.radius-control button:hover {
+    background-color: #e63e33;
+}
+
+/* Diameter Control Styles */
+#diameter-control {
+    margin-top: auto;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+#diameter-control label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 14px;
+}
+
+.diameter-input-group {
+    display: flex;
+    gap: 10px;
+}
+
+#diameter-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#apply-diameter-btn {
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+#apply-diameter-btn:hover {
+    background-color: #1976D2;
+}
+
+/* Postcode Input Styles */
+.postcode-input-group {
+    margin-top: 15px;
+}
+
+.postcode-input-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-size: 14px;
+}
+
+.input-with-button {
+    display: flex;
+    gap: 10px;
+}
+
+#postcode-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    text-transform: uppercase;
+}
+
+#apply-postcode-btn {
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+}
+
+#apply-postcode-btn:hover {
+    background-color: #1976D2;
 }
 
 /* Map marker styles */
@@ -222,4 +373,24 @@ body {
         width: 120px;
         margin-bottom: 15px;
     }
+}
+
+.no-results {
+    color: #666;
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+}
+
+.loading, .error {
+    text-align: center;
+    padding: 15px;
+    color: #666;
+}
+
+.error {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
 }

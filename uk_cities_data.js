@@ -19,23 +19,24 @@ function getAreaCode(cityName) {
         }
     }
     
-    // Return default if no match found
-    return '01';
+    return null;
+}
+
+// Function to get phone code for a city
+function getPhoneCode(cityName) {
+    const city = ukTownsAndCities.find(c => c.name.toLowerCase() === cityName.toLowerCase());
+    return city ? city.phoneCode : null;
 }
 
 // Function to categorize cities by population
 function categorizeCities(cities) {
     return cities.map(city => {
         let category;
-        if (city.population > 1000000) {
-            category = "Metropolis";
-        } else if (city.population > 500000) {
-            category = "Large City";
-        } else if (city.population > 100000) {
-            category = "Medium City";
-        } else {
-            category = "Small Town";
-        }
+        if (city.population > 500000) category = 'Major City';
+        else if (city.population > 100000) category = 'Large City';
+        else if (city.population > 50000) category = 'Medium City';
+        else if (city.population > 10000) category = 'Small City';
+        else category = 'Town';
         return { ...city, category };
     });
 }
@@ -77,6 +78,7 @@ const ukTownsAndCities = [
     { name: "Stoke-on-Trent", phoneCode: "01782", population: 249008, latitude: 53.0027, longitude: -2.1794 },
     { name: "Wolverhampton", phoneCode: "01902", population: 249470, latitude: 52.5870, longitude: -2.1288 },
     { name: "Derby", phoneCode: "01332", population: 248700, latitude: 52.9225, longitude: -1.4746 },
+    { name: "Doncaster", phoneCode: "01302", population: 109805, latitude: 53.5225, longitude: -1.1335 },
     { name: "Swindon", phoneCode: "01793", population: 185609, latitude: 51.5558, longitude: -1.7797 },
     { name: "Watford", phoneCode: "01923", population: 96767, latitude: 51.6568, longitude: -0.3966 },
     { name: "Basildon", phoneCode: "01268", population: 107123, latitude: 51.5724, longitude: 0.4574 },
@@ -771,14 +773,8 @@ const ukTownsAndCities = [
     { name: "York", phoneCode: "01904", population: 153717, latitude: 53.9600, longitude: -1.0873 }
 ];
 
-// Function to get phone code for a city
-function getPhoneCode(cityName) {
-    const city = ukTownsAndCities.find(c => c.name.toLowerCase() === cityName.toLowerCase());
-    return city ? city.phoneCode : null;
-}
-
 // Export functions and data globally
 window.ukTownsAndCities = ukTownsAndCities;
 window.getAreaCode = getAreaCode;
-window.categorizeCities = categorizeCities;
 window.getPhoneCode = getPhoneCode;
+window.categorizeCities = categorizeCities;
