@@ -90,8 +90,9 @@ map.on('drag', function() {
     map.panInsideBounds(ukBounds, { animate: false });
 });
 
-// Store current cities
+// Store current cities and excluded cities
 let currentCities = [];
+let excludedCities = new Set();
 
 // Function to create a city marker
 function createCityMarker(city) {
@@ -128,10 +129,18 @@ function isCityInShapes(city, layers) {
             }
         }
         // For polygons, use proper point-in-polygon check
-        else if (layer instanceof L.Polygon) {
+        else if (layer instanceof L.Polygon && !(layer instanceof L.Circle)) {
             const latLngs = layer.getLatLngs()[0];
             if (isPointInPolygon(cityLatLng, latLngs)) {
                 console.log('City is inside polygon:', city.name);
+                return true;
+            }
+        }
+        // For circles, check if point is within radius
+        else if (layer instanceof L.Circle) {
+            const distance = layer.getLatLng().distanceTo(cityLatLng);
+            if (distance <= layer.getRadius()) {
+                console.log('City is inside circle:', city.name);
                 return true;
             }
         }
@@ -164,91 +173,118 @@ function isPointInPolygon(point, polygon) {
 // Function to update cities list based on drawn shapes and population filter
 function updateCitiesList(layers) {
     const citiesList = document.getElementById('cities-list');
-    const downloadBtn = document.getElementById('download-btn');
-    const citiesCount = document.querySelector('.cities-count');
+    citiesList.innerHTML = '';
+    cityMarkers.clearLayers();
+    currentCities = [];
+
+    // Get population filter values
     const populationFilter = parseInt(document.getElementById('population-filter').value);
     
     console.log('Updating cities list with filter:', populationFilter);
     console.log('Number of shapes:', layers.length);
     
-    cityMarkers.clearLayers();
-    
     if (!layers || layers.length === 0) {
         citiesList.innerHTML = '';
-        citiesCount.textContent = 'Draw a shape to find towns & cities';
-        downloadBtn.disabled = true;
+        document.querySelector('.cities-count').textContent = 'Draw a shape to find towns & cities';
+        document.getElementById('download-btn').disabled = true;
         currentCities = [];
         return;
     }
     
     // Filter cities within the shapes and by population
-    currentCities = ukTownsAndCities.filter(city => {
-        const hasCoords = city.latitude && city.longitude;
-        const meetsPopulation = city.population >= populationFilter;
-        const inShape = isCityInShapes(city, layers);
-        
-        console.log('City:', city.name);
-        console.log('- Has coordinates:', hasCoords);
-        console.log('- Meets population:', meetsPopulation);
-        console.log('- In shape:', inShape);
-        
-        return hasCoords && meetsPopulation && inShape;
-    });
+    for (const city of ukTownsAndCities) {
+        if (isCityInShapes(city, layers)) {
+            // Check population filter
+            if (populationFilter === '' || city.population >= populationFilter) {
+                
+                // Skip excluded cities
+                if (excludedCities.has(city.name)) continue;
 
-    if (currentCities.length === 0) {
-        citiesList.innerHTML = '<div class="no-results">No major towns or cities found in these areas</div>';
-        citiesCount.textContent = 'No locations found';
-        downloadBtn.disabled = true;
-        return;
+                currentCities.push(city);
+                
+                // Create city marker
+                const marker = createCityMarker(city);
+                cityMarkers.addLayer(marker);
+
+                // Create city list item
+                const cityItem = document.createElement('div');
+                cityItem.className = 'city-item';
+                cityItem.innerHTML = `
+                    <div class="city-info">
+                        <span class="city-name">${city.name}</span>
+                        <span class="city-population">Pop: ${city.population.toLocaleString()}</span>
+                        <span class="city-area-code">${city.areaCode}</span>
+                    </div>
+                    <button class="exclude-city" title="Exclude city" data-city="${city.name}">×</button>
+                `;
+                citiesList.appendChild(cityItem);
+            }
+        }
     }
 
-    // Sort cities by population
-    currentCities.sort((a, b) => b.population - a.population);
+    // Enable/disable download buttons
+    const downloadBtn = document.getElementById('download-btn');
+    downloadBtn.disabled = currentCities.length === 0;
 
-    // Update cities count
-    citiesCount.textContent = `${currentCities.length} ${currentCities.length === 1 ? 'location' : 'locations'} found`;
-
-    // Add markers to the map
-    currentCities.forEach(city => {
-        const marker = createCityMarker(city);
-        cityMarkers.addLayer(marker);
-    });
-
-    // Display cities
-    citiesList.innerHTML = currentCities
-        .map(city => `
-            <div class="city-item" data-lat="${city.latitude}" data-lng="${city.longitude}">
-                <div class="city-info">
-                    <div class="city-name">${city.name}</div>
-                    <div class="city-population">Population: ${city.population.toLocaleString()}</div>
-                </div>
-                <div class="area-code">${city.phoneCode}</div>
-            </div>
-        `)
-        .join('');
-
-    // Enable download button
-    downloadBtn.disabled = false;
-
-    // Add click handlers to city items
-    document.querySelectorAll('.city-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const lat = parseFloat(item.dataset.lat);
-            const lng = parseFloat(item.dataset.lng);
-            map.setView([lat, lng], 12);
-
-            // Find and open the corresponding marker's popup
-            cityMarkers.getLayers().forEach(marker => {
-                if (marker.getLatLng().lat === lat && marker.getLatLng().lng === lng) {
-                    marker.openPopup();
-                }
-            });
-        });
-    });
+    // Update counters
+    updateCityCounters();
 }
 
-// Initialize city coordinates when the page loads
-// getCityCoordinates().catch(console.error);
+// Function to update city counters
+function updateCityCounters() {
+    const totalCities = currentCities.length;
+    const excludedCount = excludedCities.size;
+    
+    const counterDiv = document.createElement('div');
+    counterDiv.className = 'city-counters';
+    counterDiv.innerHTML = `
+        <div>Cities shown: ${totalCities}</div>
+        ${excludedCount > 0 ? `<div>Cities excluded: ${excludedCount}</div>` : ''}
+    `;
+    
+    const citiesList = document.getElementById('cities-list');
+    const existingCounter = citiesList.querySelector('.city-counters');
+    if (existingCounter) {
+        citiesList.removeChild(existingCounter);
+    }
+    citiesList.insertBefore(counterDiv, citiesList.firstChild);
+}
+
+// Handle city exclusion
+document.getElementById('cities-list').addEventListener('click', function(e) {
+    if (e.target.classList.contains('exclude-city')) {
+        const cityName = e.target.dataset.city;
+        excludedCities.add(cityName);
+        
+        // Update the display
+        const layers = drawnItems.getLayers();
+        updateCitiesList(layers);
+    }
+});
+
+// Add clear exclusions button
+const buttonGroup = document.querySelector('.button-group');
+const clearExclusionsBtn = document.createElement('button');
+clearExclusionsBtn.id = 'clear-exclusions-btn';
+clearExclusionsBtn.textContent = 'Clear Exclusions';
+clearExclusionsBtn.disabled = true;
+buttonGroup.appendChild(clearExclusionsBtn);
+
+// Handle clearing exclusions
+clearExclusionsBtn.addEventListener('click', function() {
+    excludedCities.clear();
+    const layers = drawnItems.getLayers();
+    updateCitiesList(layers);
+    this.disabled = true;
+});
+
+// Update clear exclusions button state
+function updateClearExclusionsButton() {
+    const btn = document.getElementById('clear-exclusions-btn');
+    if (btn) {
+        btn.disabled = excludedCities.size === 0;
+    }
+}
 
 // Handle population filter change
 document.getElementById('population-filter').addEventListener('change', () => {

@@ -389,6 +389,22 @@ button:disabled {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
+.nearby-marker {
+    transition: opacity 0.2s ease-in-out;
+}
+
+.nearby-marker-icon {
+    background-color: #FF4438;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    width: 12px !important;
+    height: 12px !important;
+    margin-left: -6px !important;
+    margin-top: -6px !important;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
 /* Mobile Responsive Design */
 @media (max-width: 768px) {
     .container {
