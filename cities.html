@@ -419,15 +419,24 @@
                 });
 
                 // Handle reset button
-                document.getElementById('reset-btn').addEventListener('click', () => {
+                document.getElementById('reset-btn').addEventListener('click', function() {
+                    // Clear all drawn shapes
                     drawnItems.clearLayers();
-                    selectedCities.clear();
-                    // Remove all markers
+                    
+                    // Reset city list
+                    document.getElementById('city-list').innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
+                    
+                    // Disable download buttons
+                    document.getElementById('download-csv-btn').disabled = true;
+                    document.getElementById('download-xls-btn').disabled = true;
+                    
+                    // Hide diameter control
+                    document.getElementById('diameter-control').style.display = 'none';
+                    
+                    // Clear all city markers from the map
                     cityMarkers.forEach(({ marker, layer }) => {
                         layer.removeLayer(marker);
                     });
-                    document.getElementById('city-list').innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
-                    updateDownloadButtons();
                 });
 
             } catch (error) {
