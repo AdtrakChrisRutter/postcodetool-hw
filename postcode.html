@@ -14,14 +14,20 @@
 <body>
     <div class="container">
         <div class="sidebar">
-            <a href="index.html" class="back-link">← Back to Tools</a>
-            <img src="https://www.datocms-assets.com/19381/1652271729-adtrak-2.png" alt="Adtrak Logo" class="logo">
-            <div id="postcode-list"></div>
-            <div class="button-group">
-                <button id="download-csv-btn" disabled>Download CSV</button>
-                <button id="download-xls-btn" disabled>Download XLS</button>
+            <div class="sidebar-header">
+                <a href="index.html" class="back-link">← Back to Tools</a>
+                <img src="https://www.datocms-assets.com/19381/1652271729-adtrak-2.png" alt="Adtrak Logo" class="logo">
             </div>
-            <button id="reset-btn">Reset Map</button>
+            <div class="sidebar-content">
+                <div id="postcode-list"></div>
+            </div>
+            <div class="sidebar-bottom">
+                <div class="button-group">
+                    <button id="download-csv-btn" disabled>Download CSV</button>
+                    <button id="download-xls-btn" disabled>Download XLS</button>
+                </div>
+                <button id="reset-btn">Reset Map</button>
+            </div>
         </div>
         <div id="map"></div>
     </div>

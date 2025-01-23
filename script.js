@@ -99,6 +99,7 @@ map.on(L.Draw.Event.CREATED, async function (event) {
     const postcodeList = document.getElementById('postcode-list');
     postcodeList.innerHTML = '<div class="loading">Loading postcodes...</div>';
     document.getElementById('download-csv-btn').disabled = true;
+    document.getElementById('download-xls-btn').disabled = true;
     
     try {
         await updatePostcodesFromShapes();
@@ -106,6 +107,7 @@ map.on(L.Draw.Event.CREATED, async function (event) {
         console.error('Error fetching postcodes:', error);
         postcodeList.innerHTML = '<div class="error">Error fetching postcodes. Please try again. (Error: ' + error.message + ')</div>';
         document.getElementById('download-csv-btn').disabled = true;
+        document.getElementById('download-xls-btn').disabled = true;
     }
 });
 
@@ -117,6 +119,7 @@ map.on(L.Draw.Event.DELETED, async function (event) {
         const postcodeList = document.getElementById('postcode-list');
         postcodeList.innerHTML = '';
         document.getElementById('download-csv-btn').disabled = true;
+        document.getElementById('download-xls-btn').disabled = true;
     } else {
         // If some shapes remain, update postcodes
         try {
@@ -192,8 +195,9 @@ async function updatePostcodesFromShapes() {
     }
 
     if (allPostcodes.size === 0) {
-        postcodeList.innerHTML = '<div class="no-results">No postcodes found in these areas</div>';
+        postcodeList.innerHTML = '<div class="no-results">Draw a shape to select postcodes</div>';
         document.getElementById('download-csv-btn').disabled = true;
+        document.getElementById('download-xls-btn').disabled = true;
         return;
     }
 
@@ -206,10 +210,12 @@ async function updatePostcodesFromShapes() {
 function displayPostcodes(postcodes) {
     const postcodeList = document.getElementById('postcode-list');
     const downloadCsvBtn = document.getElementById('download-csv-btn');
+    const downloadXlsBtn = document.getElementById('download-xls-btn');
     
     if (postcodes.length === 0) {
-        postcodeList.innerHTML = '<div class="no-results">No postcodes found in these areas</div>';
+        postcodeList.innerHTML = '<div class="no-results">Draw a shape to select postcodes</div>';
         downloadCsvBtn.disabled = true;
+        downloadXlsBtn.disabled = true;
         return;
     }
     
@@ -217,11 +223,39 @@ function displayPostcodes(postcodes) {
     const sortedPostcodes = [...postcodes].sort();
     
     postcodeList.innerHTML = sortedPostcodes
-        .map(postcode => `<div class="postcode-item">${postcode}</div>`)
+        .map(postcode => `
+            <div class="city-item" data-postcode="${postcode}">
+                <button class="remove-city" aria-label="Remove ${postcode}">&times;</button>
+                <div class="city-name">${postcode}</div>
+            </div>
+        `)
         .join('');
+        
+    // Add event listeners for remove buttons
+    document.querySelectorAll('.remove-city').forEach(button => {
+        button.addEventListener('click', function(e) {
+            const postcodeItem = e.target.closest('.city-item');
+            const postcode = postcodeItem.dataset.postcode;
+            
+            // Remove the postcode item from display
+            postcodeItem.remove();
+            currentPostcodes.delete(postcode);
+            
+            // Update download buttons state
+            const remainingPostcodes = document.querySelectorAll('.city-item').length;
+            downloadCsvBtn.disabled = remainingPostcodes === 0;
+            downloadXlsBtn.disabled = remainingPostcodes === 0;
+            
+            // Show "no results" if all postcodes are removed
+            if (remainingPostcodes === 0) {
+                postcodeList.innerHTML = '<div class="no-results">Draw a shape to select postcodes</div>';
+            }
+        });
+    });
         
     // Enable download buttons
     downloadCsvBtn.disabled = false;
+    downloadXlsBtn.disabled = false;
 }
 
 // Reset button functionality
@@ -229,6 +263,7 @@ document.getElementById('reset-btn').addEventListener('click', function() {
     drawnItems.clearLayers();
     document.getElementById('postcode-list').innerHTML = '';
     document.getElementById('download-csv-btn').disabled = true;
+    document.getElementById('download-xls-btn').disabled = true;
     currentPostcodes.clear();
 });
 
@@ -246,6 +281,30 @@ document.getElementById('download-csv-btn').addEventListener('click', function()
     // Set up download link
     link.href = URL.createObjectURL(blob);
     link.download = `uk_postcodes_${new Date().toISOString().split('T')[0]}.csv`;
+    
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+});
+
+// Download XLS button functionality
+document.getElementById('download-xls-btn').addEventListener('click', function() {
+    if (!currentPostcodes.size) return;
+    
+    // Create XLS content
+    const xlsContent = [
+        ['Postcode'],
+        ...Array.from(currentPostcodes).sort().map(postcode => [postcode])
+    ];
+    
+    // Create blob and download link
+    const blob = new Blob([xlsContent.map(row => row.join('\t')).join('\n')], { type: 'text/tab-separated-values;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    // Set up download link
+    link.href = URL.createObjectURL(blob);
+    link.download = `uk_postcodes_${new Date().toISOString().split('T')[0]}.xls`;
     
     // Trigger download
     document.body.appendChild(link);
