@@ -138,7 +138,8 @@
                         rectangle: {
                             shapeOptions: {
                                 color: '#2196F3'
-                            }
+                            },
+                            repeatMode: true  // Allow drawing multiple rectangles
                         },
                         // Disable other drawing tools
                         polyline: false,
@@ -161,49 +162,50 @@
                     L.DomEvent.disableClickPropagation(map._container);
                 }
 
-                // Handle drawing events
-                map.on(L.Draw.Event.CREATED, function (event) {
-                    const layer = event.layer;
+                // Function to filter cities within multiple shapes
+                function filterCitiesInShapes() {
+                    // Get all drawn layers
+                    const layers = drawnItems.getLayers();
                     
-                    // Clear previous drawn items and city markers
-                    drawnItems.clearLayers();
-                    cityMarkersLayer.clearLayers();
-                    
-                    // Add the new layer to the drawn items group
-                    drawnItems.addLayer(layer);
-                    
-                    // Get bounds of the drawn shape
-                    const bounds = layer.getBounds();
-                    
-                    console.log('Shape drawn details:', {
-                        type: event.layerType,
-                        bounds: {
-                            southwest: bounds.getSouthWest(),
-                            northeast: bounds.getNorthEast()
-                        }
-                    });
+                    // If no shapes, clear everything
+                    if (layers.length === 0) {
+                        cityMarkersLayer.clearLayers();
+                        document.getElementById('city-list').innerHTML = '';
+                        document.getElementById('download-csv-btn').disabled = true;
+                        document.getElementById('download-xls-btn').disabled = true;
+                        return [];
+                    }
 
-                    // Filter cities within the drawn shape
+                    // Filter cities that are within ANY of the drawn shapes
                     const filteredCities = cities.filter(city => {
                         const lat = Number(city.latitude);
                         const lng = Number(city.longitude);
                         
-                        const isWithinLongitude = lng >= bounds.getSouthWest().lng && 
-                                                  lng <= bounds.getNorthEast().lng;
-                        const isWithinLatitude = lat >= bounds.getSouthWest().lat && 
-                                                 lat <= bounds.getNorthEast().lat;
-                        
-                        return isWithinLongitude && isWithinLatitude;
+                        // Check if city is within any of the drawn shapes
+                        return layers.some(layer => {
+                            const bounds = layer.getBounds();
+                            return (lng >= bounds.getSouthWest().lng && 
+                                    lng <= bounds.getNorthEast().lng &&
+                                    lat >= bounds.getSouthWest().lat && 
+                                    lat <= bounds.getNorthEast().lat);
+                        });
                     });
+
+                    // Remove duplicate cities
+                    const uniqueCities = Array.from(new Set(filteredCities.map(city => city.name)))
+                        .map(name => filteredCities.find(city => city.name === name));
 
                     // Log filtered cities
-                    console.log('Filtered Cities:', {
-                        total: filteredCities.length,
-                        names: filteredCities.map(city => city.name)
+                    console.log('Filtered Cities in Multiple Shapes:', {
+                        total: uniqueCities.length,
+                        names: uniqueCities.map(city => city.name)
                     });
 
+                    // Clear previous markers
+                    cityMarkersLayer.clearLayers();
+
                     // Add markers for filtered cities
-                    filteredCities.forEach(city => {
+                    uniqueCities.forEach(city => {
                         const marker = L.circleMarker(
                             [city.latitude, city.longitude], 
                             {
@@ -227,8 +229,8 @@
                     const csvBtn = document.getElementById('download-csv-btn');
                     const xlsBtn = document.getElementById('download-xls-btn');
 
-                    if (filteredCities.length > 0) {
-                        cityList.innerHTML = filteredCities.map(city => 
+                    if (uniqueCities.length > 0) {
+                        cityList.innerHTML = uniqueCities.map(city => 
                             `<div class="city-item">
                                 ${city.name}
                                 <small class="city-population">Pop: ${city.population.toLocaleString()}</small>
@@ -240,17 +242,15 @@
                         csvBtn.disabled = false;
                         xlsBtn.disabled = false;
 
-                        // Add download event listeners
+                        // Update download event listeners with new cities
                         csvBtn.onclick = function() {
-                            // Convert cities to CSV
                             const csvContent = [
                                 'Name,Population,Area Code,Latitude,Longitude',
-                                ...filteredCities.map(city => 
+                                ...uniqueCities.map(city => 
                                     `${city.name},${city.population},${city.areaCode},${city.latitude},${city.longitude}`
                                 )
                             ].join('\n');
 
-                            // Create and download CSV file
                             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                             const link = document.createElement('a');
                             const url = URL.createObjectURL(blob);
@@ -263,11 +263,10 @@
                         };
 
                         xlsBtn.onclick = function() {
-                            // Prepare workbook
                             const wb = XLSX.utils.book_new();
                             const wsData = [
                                 ['Name', 'Population', 'Area Code', 'Latitude', 'Longitude'],
-                                ...filteredCities.map(city => [
+                                ...uniqueCities.map(city => [
                                     city.name, 
                                     city.population, 
                                     city.areaCode, 
@@ -276,22 +275,63 @@
                                 ])
                             ];
 
-                            // Create worksheet
                             const ws = XLSX.utils.aoa_to_sheet(wsData);
-                            
-                            // Add worksheet to workbook
                             XLSX.utils.book_append_sheet(wb, ws, 'UK Cities');
-
-                            // Save workbook
                             XLSX.writeFile(wb, 'uk_cities.xlsx');
                         };
                     } else {
                         cityList.innerHTML = '<div class="no-results">No cities found in this area.</div>';
-                        
-                        // Disable download buttons
                         csvBtn.disabled = true;
                         xlsBtn.disabled = true;
                     }
+
+                    return uniqueCities;
+                }
+
+                // Handle drawing events
+                map.on(L.Draw.Event.CREATED, function (event) {
+                    const layer = event.layer;
+                    
+                    // Add the new layer to the drawn items group
+                    drawnItems.addLayer(layer);
+                    
+                    // Filter and display cities
+                    filterCitiesInShapes();
+                });
+
+                // Handle layer deletion
+                map.on(L.Draw.Event.DELETED, function () {
+                    // Refilter cities after deletion
+                    filterCitiesInShapes();
+                });
+
+                // Reset map view
+                document.getElementById('reset-btn').addEventListener('click', function() {
+                    // Clear drawn items and city markers
+                    drawnItems.clearLayers();
+                    cityMarkersLayer.clearLayers();
+                    
+                    // Reset map view
+                    map.setView([54.5, -2], 6);
+                    
+                    // Clear city list
+                    const cityList = document.getElementById('city-list');
+                    cityList.innerHTML = '';
+                    
+                    // Disable download buttons
+                    const csvBtn = document.getElementById('download-csv-btn');
+                    const xlsBtn = document.getElementById('download-xls-btn');
+                    csvBtn.disabled = true;
+                    xlsBtn.disabled = true;
+                    
+                    // Remove any existing bounds rectangle
+                    map.eachLayer(function(layer) {
+                        if (layer instanceof L.Rectangle) {
+                            map.removeLayer(layer);
+                        }
+                    });
+
+                    console.log('Map reset completed');
                 });
 
                 return map;
