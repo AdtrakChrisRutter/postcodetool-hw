@@ -151,6 +151,47 @@ button:disabled {
     position: relative;
 }
 
+.city-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-right: 24px;
+    margin-bottom: 4px;
+}
+
+.city-name {
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+.city-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: #666;
+}
+
+.detail-label {
+    color: #666;
+}
+
+.detail-value {
+    text-align: right;
+}
+
+.cost-value {
+    color: #FF4438;
+    font-weight: 500;
+}
+
 .remove-city {
     position: absolute;
     top: 8px;
@@ -173,19 +214,6 @@ button:disabled {
 .remove-city:hover {
     background: #f5f5f5;
     color: #666;
-}
-
-.city-name {
-    font-size: 14px;
-    color: #333;
-    margin-right: 24px;
-    font-weight: 500;
-}
-
-.city-population {
-    font-size: 11px;
-    color: #666;
-    margin-top: 4px;
 }
 
 .city-counters {
@@ -400,4 +428,194 @@ button:disabled {
     background-color: #f8d7da;
     border: 1px solid #f5c6cb;
     border-radius: 4px;
+}
+
+/* Filter Button */
+.filter-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.filter-button:hover {
+    background: #f5f5f5;
+    transform: scale(1.05);
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    position: relative;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.modal-content h2 {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 18px;
+}
+
+.filter-options {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.filter-option {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Toggle Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #FF4438;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 24px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #666;
+    cursor: pointer;
+    padding: 5px;
+    line-height: 1;
+}
+
+.close-button:hover {
+    color: #333;
+}
+
+/* City item modifications for costs */
+.city-costs {
+    font-size: 11px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.cost-item {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2px;
+}
+
+/* Totals Box Styles */
+#totals-box {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 16px;
+    display: none;
+}
+
+.totals-header {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.totals-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+
+.totals-row:last-child {
+    margin-bottom: 0;
+}
+
+.total-label {
+    color: #666;
+}
+
+.total-value {
+    font-weight: 500;
+    color: #FF4438;
 }

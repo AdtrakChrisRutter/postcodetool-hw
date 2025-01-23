@@ -19,6 +19,10 @@
                 <div id="city-list"></div>
             </div>
             <div class="sidebar-bottom">
+                <div id="totals-box">
+                    <div class="totals-header">Selected Cities Totals</div>
+                    <div id="totals-content"></div>
+                </div>
                 <div id="diameter-control" style="display: none;">
                     <label for="diameter-input">Circle Diameter (miles):</label>
                     <div class="diameter-input-group">
@@ -41,6 +45,35 @@
             </div>
         </div>
         <div id="map"></div>
+        <button id="filter-button" class="filter-button" aria-label="Show filters">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                <path fill="currentColor" d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Filter Modal -->
+    <div id="filter-modal" class="modal">
+        <div class="modal-content">
+            <h2>Display Options</h2>
+            <div class="filter-options">
+                <div class="filter-option">
+                    <label class="switch">
+                        <input type="checkbox" id="ald-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                    <span>ALD License Cost</span>
+                </div>
+                <div class="filter-option">
+                    <label class="switch">
+                        <input type="checkbox" id="adspend-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                    <span>Estimated Adspend</span>
+                </div>
+            </div>
+            <button id="close-modal" class="close-button">&times;</button>
+        </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -121,6 +154,7 @@
 
                 // Add city markers if data is loaded
                 let selectedCities = new Set();
+                let uniqueCities = [];
                 
                 if (window.ukTownsAndCities && Array.isArray(window.ukTownsAndCities)) {
                     const cityMarkersLayer = L.layerGroup().addTo(map);
@@ -241,6 +275,67 @@
                     }
                 }
 
+                // Cost configurations
+                const costConfig = {
+                    'Major City': { ald: 100, adspend: 1500 },
+                    'Large City': { ald: 75, adspend: 1200 },
+                    'Medium City': { ald: 50, adspend: 750 },
+                    'Small City': { ald: 25, adspend: 500 }
+                };
+
+                // Function to categorize city by population
+                function getCityCategory(population) {
+                    if (population >= 500000) return 'Major City';
+                    if (population >= 200000) return 'Large City';
+                    if (population >= 100000) return 'Medium City';
+                    return 'Small City';
+                }
+
+                // Function to update totals box
+                function updateTotalsBox() {
+                    const totalsBox = document.getElementById('totals-box');
+                    const totalsContent = document.getElementById('totals-content');
+                    const showAld = document.getElementById('ald-toggle').checked;
+                    const showAdspend = document.getElementById('adspend-toggle').checked;
+
+                    // Hide totals box if no filters are active
+                    if (!showAld && !showAdspend) {
+                        totalsBox.style.display = 'none';
+                        return;
+                    }
+
+                    // Calculate totals
+                    let totalAld = 0;
+                    let totalAdspend = 0;
+
+                    uniqueCities.forEach(city => {
+                        const category = getCityCategory(city.population);
+                        const costs = costConfig[category];
+                        totalAld += costs.ald;
+                        totalAdspend += costs.adspend;
+                    });
+
+                    // Build totals content
+                    let html = '';
+                    if (showAld) {
+                        html += `
+                            <div class="totals-row">
+                                <span class="total-label">Total ALD License:</span>
+                                <span class="total-value">£${totalAld.toLocaleString()}</span>
+                            </div>`;
+                    }
+                    if (showAdspend) {
+                        html += `
+                            <div class="totals-row">
+                                <span class="total-label">Total Suggested Adspend:</span>
+                                <span class="total-value">£${totalAdspend.toLocaleString()}</span>
+                            </div>`;
+                    }
+
+                    totalsContent.innerHTML = html;
+                    totalsBox.style.display = 'block';
+                }
+
                 // Handle diameter input
                 document.getElementById('apply-diameter-btn').addEventListener('click', function() {
                     const circles = drawnItems.getLayers().filter(layer => layer instanceof L.Circle);
@@ -339,47 +434,110 @@
                     const csvBtn = document.getElementById('download-csv-btn');
                     const xlsBtn = document.getElementById('download-xls-btn');
 
-                    if (cities.length > 0) {
-                        cityList.innerHTML = cities.map(city => 
-                            `<div class="city-item" data-city-name="${city.name}">
-                                <button class="remove-city" aria-label="Remove ${city.name}">&times;</button>
-                                <div class="city-name">${city.name} (${city.phoneCode})</div>
-                                <div class="city-population">Population: ${city.population.toLocaleString()}</div>
-                            </div>`
-                        ).join('');
-
-                        // Add event listeners for remove buttons
-                        document.querySelectorAll('.remove-city').forEach(button => {
-                            button.addEventListener('click', function(e) {
-                                const cityItem = e.target.closest('.city-item');
-                                const cityName = cityItem.dataset.cityName;
-                                
-                                // Remove the city item from display
-                                cityItem.remove();
-                                
-                                // Remove the marker from the map
-                                const { marker, layer } = cityMarkers.get(cityName);
-                                layer.removeLayer(marker);
-                                
-                                // Update the cities list
-                                const remainingCities = Array.from(document.querySelectorAll('.city-item'))
-                                    .map(item => cities.find(city => city.name === item.dataset.cityName))
-                                    .filter(Boolean);
-                                
-                                // Update download buttons state
-                                csvBtn.disabled = remainingCities.length === 0;
-                                xlsBtn.disabled = remainingCities.length === 0;
-                                
-                                // Show "no results" if all cities are removed
-                                if (remainingCities.length === 0) {
-                                    cityList.innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
-                                }
-                            });
-                        });
-                    } else {
+                    if (cities.length === 0) {
                         cityList.innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
+                        csvBtn.disabled = true;
+                        xlsBtn.disabled = true;
+                        return;
                     }
+
+                    uniqueCities = cities;
+                    const showAld = document.getElementById('ald-toggle').checked;
+                    const showAdspend = document.getElementById('adspend-toggle').checked;
+                    
+                    cityList.innerHTML = cities.map(city => {
+                        const category = getCityCategory(city.population);
+                        const costs = costConfig[category];
+                        return `<div class="city-item" data-city-name="${city.name}">
+                            <button class="remove-city" aria-label="Remove ${city.name}">&times;</button>
+                            <div class="city-header">
+                                <div class="city-name">${city.name} (${city.phoneCode})</div>
+                            </div>
+                            <div class="city-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">Population:</span>
+                                    <span class="detail-value">${city.population.toLocaleString()}</span>
+                                </div>
+                                ${showAld ? `
+                                <div class="detail-row">
+                                    <span class="detail-label">ALD License:</span>
+                                    <span class="detail-value cost-value">£${costs.ald}</span>
+                                </div>` : ''}
+                                ${showAdspend ? `
+                                <div class="detail-row">
+                                    <span class="detail-label">Suggested Adspend:</span>
+                                    <span class="detail-value cost-value">£${costs.adspend}</span>
+                                </div>` : ''}
+                            </div>
+                        </div>`;
+                    }).join('');
+
+                    // Update totals box
+                    updateTotalsBox();
+
+                    // Add event listeners for remove buttons
+                    document.querySelectorAll('.remove-city').forEach(button => {
+                        button.addEventListener('click', function(e) {
+                            const cityItem = e.target.closest('.city-item');
+                            const cityName = cityItem.dataset.cityName;
+                            
+                            cityItem.remove();
+                            
+                            const { marker, layer } = cityMarkers.get(cityName);
+                            layer.removeLayer(marker);
+                            
+                            const remainingCities = Array.from(document.querySelectorAll('.city-item'))
+                                .map(item => uniqueCities.find(city => city.name === item.dataset.cityName))
+                                .filter(Boolean);
+                            
+                            uniqueCities = remainingCities;
+                            updateTotalsBox();
+                            
+                            csvBtn.disabled = remainingCities.length === 0;
+                            xlsBtn.disabled = remainingCities.length === 0;
+                            
+                            if (remainingCities.length === 0) {
+                                cityList.innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
+                            }
+                        });
+                    });
+
+                    csvBtn.disabled = false;
+                    xlsBtn.disabled = false;
                 }
+
+                // Filter button functionality
+                const filterButton = document.getElementById('filter-button');
+                const filterModal = document.getElementById('filter-modal');
+                const closeModal = document.getElementById('close-modal');
+                const aldToggle = document.getElementById('ald-toggle');
+                const adspendToggle = document.getElementById('adspend-toggle');
+
+                filterButton.addEventListener('click', () => {
+                    filterModal.classList.add('show');
+                });
+
+                closeModal.addEventListener('click', () => {
+                    filterModal.classList.remove('show');
+                });
+
+                filterModal.addEventListener('click', (e) => {
+                    if (e.target === filterModal) {
+                        filterModal.classList.remove('show');
+                    }
+                });
+
+                // Add event listeners for toggles
+                aldToggle.addEventListener('change', () => {
+                    if (uniqueCities.length > 0) {
+                        updateCityList(uniqueCities);
+                    }
+                });
+                adspendToggle.addEventListener('change', () => {
+                    if (uniqueCities.length > 0) {
+                        updateCityList(uniqueCities);
+                    }
+                });
 
                 // Function to update download buttons state
                 function updateDownloadButtons() {
