@@ -25,9 +25,8 @@
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" onerror="console.error('Failed to load Leaflet')"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" onerror="console.error('Failed to load Leaflet Draw')"></script>
-    <script src="uk_area_codes.js" onerror="console.error('Failed to load uk_area_codes.js')"></script>
-    <script src="uk_towns_cities.js" onerror="console.error('Failed to load uk_towns_cities.js')"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js" onerror="console.error('Failed to load XLSX')"></script>
+    <script src="uk_cities_data.js" onerror="console.error('Failed to load uk_cities_data.js')"></script>
     <script>
         // Global error handling
         window.addEventListener('error', function(event) {
@@ -234,7 +233,7 @@
                             `<div class="city-item">
                                 ${city.name}
                                 <small class="city-population">Pop: ${city.population.toLocaleString()}</small>
-                                <span class="city-code">${city.areaCode}</span>
+                                <span class="city-code">${city.phoneCode}</span>
                             </div>`
                         ).join('');
                         
@@ -245,9 +244,9 @@
                         // Update download event listeners with new cities
                         csvBtn.onclick = function() {
                             const csvContent = [
-                                'Name,Population,Area Code,Latitude,Longitude',
+                                'Name,Population,Phone Code,Latitude,Longitude',
                                 ...uniqueCities.map(city => 
-                                    `${city.name},${city.population},${city.areaCode},${city.latitude},${city.longitude}`
+                                    `${city.name},${city.population},${city.phoneCode},${city.latitude},${city.longitude}`
                                 )
                             ].join('\n');
 
@@ -265,11 +264,11 @@
                         xlsBtn.onclick = function() {
                             const wb = XLSX.utils.book_new();
                             const wsData = [
-                                ['Name', 'Population', 'Area Code', 'Latitude', 'Longitude'],
+                                ['Name', 'Population', 'Phone Code', 'Latitude', 'Longitude'],
                                 ...uniqueCities.map(city => [
                                     city.name, 
                                     city.population, 
-                                    city.areaCode, 
+                                    city.phoneCode, 
                                     city.latitude, 
                                     city.longitude
                                 ])

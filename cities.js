@@ -166,7 +166,7 @@ function updateCitiesList(layers) {
                     <div class="city-name">${city.name}</div>
                     <div class="city-population">Population: ${city.population.toLocaleString()}</div>
                 </div>
-                <div class="area-code">${city.areaCode}</div>
+                <div class="area-code">${city.phoneCode}</div>
             </div>
         `)
         .join('');
