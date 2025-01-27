@@ -16,16 +16,22 @@
             display: block;
         }
         
-        .button-group {
+        .button-container {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
             gap: 10px;
             margin: 10px 0;
             width: 100%;
         }
 
+        .download-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 5px;
+            width: 100%;
+        }
+
         .download-btn {
-            flex: 1;
             padding: 8px;
             font-size: 14px;
             border: 1px solid #ccc;
@@ -33,6 +39,7 @@
             background-color: #fff;
             cursor: pointer;
             transition: background-color 0.2s;
+            width: 100%;
         }
 
         .download-btn:hover:not(:disabled) {
@@ -42,6 +49,21 @@
         .download-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .reset-btn:hover {
+            background-color: #f0f0f0;
         }
     </style>
 </head>
@@ -74,12 +96,14 @@
                         </div>
                     </div>
                 </div>
-                <div class="button-group">
-                    <button id="download-pdf-btn" class="download-btn" disabled>PDF</button>
-                    <button id="download-csv-btn" class="download-btn" disabled>CSV</button>
-                    <button id="download-xls-btn" class="download-btn" disabled>XLS</button>
+                <div class="button-container">
+                    <div class="download-group">
+                        <button id="download-pdf-btn" class="download-btn" disabled>PDF</button>
+                        <button id="download-csv-btn" class="download-btn" disabled>CSV</button>
+                        <button id="download-xls-btn" class="download-btn" disabled>XLS</button>
+                    </div>
+                    <button id="reset-btn" class="reset-btn">Reset Map</button>
                 </div>
-                <button id="reset-btn">Reset Map</button>
             </div>
         </div>
         <div id="map"></div>
