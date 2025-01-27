@@ -730,9 +730,7 @@ const ukTownsAndCities = [
     { name: "Yateley", phoneCode: "01252", population: 21011, latitude: 51.3383, longitude: -0.8458 },
     { name: "Yeadon", phoneCode: "0113", population: 22233, latitude: 53.8667, longitude: -1.6833 },
     { name: "Yeovil", phoneCode: "01935", population: 45784, latitude: 50.9417, longitude: -2.6333 },
-    { name: "York", phoneCode: "01904", population: 153717, latitude: 53.9600, longitude: -1.0873 },
-    { name: "Chester", phoneCode: "01244", population: 118200, latitude: 53.1905, longitude: -2.8912 },
-    { name: "Ellesmere Port", phoneCode: "0151", population: 55715, latitude: 53.2788, longitude: -2.8961 }
+    { name: "York", phoneCode: "01904", population: 153717, latitude: 53.9600, longitude: -1.0873 }
 ];
 
 // Export functions and data globally
