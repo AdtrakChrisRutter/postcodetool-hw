@@ -65,6 +65,125 @@
         .reset-btn:hover {
             background-color: #f0f0f0;
         }
+
+        /* New styles for configuration */
+        .config-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+        }
+
+        .config-button:hover {
+            transform: rotate(90deg);
+        }
+
+        .config-button svg {
+            width: 18px;
+            height: 18px;
+            fill: #666;
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .modal-header {
+            margin-bottom: 15px;
+        }
+
+        .modal-title {
+            margin: 0;
+            font-size: 18px;
+            padding-left: 5px;
+        }
+
+        .config-section {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+
+        .config-section.show {
+            display: block;
+        }
+
+        .cost-config {
+            margin: 10px 0;
+        }
+
+        .cost-config label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .cost-input-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .cost-input {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .cost-input input {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        .left-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+        }
+
+        .header-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-header {
+            margin: 24px 0 15px 0;
+        }
+
+        .modal-title {
+            margin: 0;
+            font-size: 18px;
+            padding-left: 5px;
+        }
     </style>
 </head>
 <body>
@@ -117,7 +236,16 @@
     <!-- Filter Modal -->
     <div id="filter-modal" class="modal">
         <div class="modal-content">
-            <h2>Display Options</h2>
+            <div class="header-controls">
+                <button id="config-button" class="config-button" aria-label="Configure costs">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-header">
+                <h2 class="modal-title">Display Options</h2>
+            </div>
             <div class="filter-options">
                 <div class="filter-option">
                     <label class="switch">
@@ -134,7 +262,60 @@
                     <span>Estimated Adspend</span>
                 </div>
             </div>
-            <button id="close-modal" class="close-button">&times;</button>
+            <div id="config-section" class="config-section">
+                <div class="cost-config">
+                    <label>Major City Costs</label>
+                    <div class="cost-input-group">
+                        <div class="cost-input">
+                            <span>ALD License (£)</span>
+                            <input type="number" id="major-ald" value="100" min="0">
+                        </div>
+                        <div class="cost-input">
+                            <span>Adspend (£)</span>
+                            <input type="number" id="major-adspend" value="1500" min="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="cost-config">
+                    <label>Large City Costs</label>
+                    <div class="cost-input-group">
+                        <div class="cost-input">
+                            <span>ALD License (£)</span>
+                            <input type="number" id="large-ald" value="75" min="0">
+                        </div>
+                        <div class="cost-input">
+                            <span>Adspend (£)</span>
+                            <input type="number" id="large-adspend" value="1200" min="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="cost-config">
+                    <label>Medium City Costs</label>
+                    <div class="cost-input-group">
+                        <div class="cost-input">
+                            <span>ALD License (£)</span>
+                            <input type="number" id="medium-ald" value="50" min="0">
+                        </div>
+                        <div class="cost-input">
+                            <span>Adspend (£)</span>
+                            <input type="number" id="medium-adspend" value="750" min="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="cost-config">
+                    <label>Small City Costs</label>
+                    <div class="cost-input-group">
+                        <div class="cost-input">
+                            <span>ALD License (£)</span>
+                            <input type="number" id="small-ald" value="25" min="0">
+                        </div>
+                        <div class="cost-input">
+                            <span>Adspend (£)</span>
+                            <input type="number" id="small-adspend" value="500" min="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -171,6 +352,8 @@
                 const drawnItems = new L.FeatureGroup().addTo(map);
                 let cityMarkers = new Map(); // Store markers for each city
                 let nearbyMarkers = new Map();
+                const markerGroup = L.layerGroup().addTo(map);
+                const nearbyMarkerGroup = L.layerGroup().addTo(map);
 
                 // Initialize drawing controls
                 const drawControl = new L.Control.Draw({
@@ -222,13 +405,11 @@
                 let uniqueCities = [];
                 
                 if (window.ukTownsAndCities && Array.isArray(window.ukTownsAndCities)) {
-                    const cityMarkersLayer = L.layerGroup().addTo(map);
-                    
                     // Create markers but don't add them to the map yet
                     window.ukTownsAndCities.forEach(city => {
                         const marker = L.marker([city.latitude, city.longitude])
                             .bindPopup(`<b>${city.name}</b><br>Population: ${city.population.toLocaleString()}<br>Phone Code: ${city.phoneCode}`);
-                        cityMarkers.set(city.name, { marker, layer: cityMarkersLayer });
+                        cityMarkers.set(city.name, { marker, layer: markerGroup });
                     });
 
                     // Initialize empty city list
@@ -342,7 +523,7 @@
                 }
 
                 // Cost configurations
-                const costConfig = {
+                let costConfig = {
                     'Major City': { ald: 100, adspend: 1500 },
                     'Large City': { ald: 75, adspend: 1200 },
                     'Medium City': { ald: 50, adspend: 750 },
@@ -538,7 +719,7 @@
                     });
                     
                     marker.addTo(map);
-                    cityMarkers.set(city.name, { marker, layer: L.layerGroup().addTo(map) });
+                    cityMarkers.set(city.name, { marker, layer: markerGroup });
                 }
 
                 // Handle diameter input
@@ -801,19 +982,53 @@
                     pdfBtn.disabled = false;
                 }
 
+                // Reset map functionality
+                document.getElementById('reset-btn').addEventListener('click', () => {
+                    // Clear all selected cities
+                    uniqueCities = [];
+                    
+                    // Clear all markers from both marker groups
+                    markerGroup.clearLayers();
+                    nearbyMarkerGroup.clearLayers();
+                    
+                    // Clear all markers from the map directly
+                    map.eachLayer((layer) => {
+                        if (layer instanceof L.Marker) {
+                            map.removeLayer(layer);
+                        }
+                    });
+                    
+                    // Clear the marker tracking sets
+                    cityMarkers.clear();
+                    nearbyMarkers.clear();
+                    
+                    // Reset the city list
+                    const cityList = document.getElementById('city-list');
+                    cityList.innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
+                    
+                    // Reset the total cost displays
+                    document.getElementById('totals-content').innerHTML = '';
+                    
+                    // Clear all drawn shapes
+                    drawnItems.clearLayers();
+                    
+                    // Hide diameter control
+                    document.getElementById('diameter-control').style.display = 'none';
+                    
+                    // Disable download buttons
+                    document.getElementById('download-csv-btn').disabled = true;
+                    document.getElementById('download-xls-btn').disabled = true;
+                    document.getElementById('download-pdf-btn').disabled = true;
+                });
+
                 // Filter button functionality
                 const filterButton = document.getElementById('filter-button');
                 const filterModal = document.getElementById('filter-modal');
-                const closeModal = document.getElementById('close-modal');
                 const aldToggle = document.getElementById('ald-toggle');
                 const adspendToggle = document.getElementById('adspend-toggle');
 
                 filterButton.addEventListener('click', () => {
                     filterModal.classList.add('show');
-                });
-
-                closeModal.addEventListener('click', () => {
-                    filterModal.classList.remove('show');
                 });
 
                 filterModal.addEventListener('click', (e) => {
@@ -836,7 +1051,7 @@
 
                 // Function to update download buttons state
                 function updateDownloadButtons() {
-                    const hasSelection = selectedCities.size > 0;
+                    const hasSelection = uniqueCities.length > 0;
                     document.getElementById('download-csv-btn').disabled = !hasSelection;
                     document.getElementById('download-xls-btn').disabled = !hasSelection;
                     document.getElementById('download-pdf-btn').disabled = !hasSelection;
@@ -844,8 +1059,7 @@
 
                 // Handle download buttons
                 document.getElementById('download-csv-btn').addEventListener('click', () => {
-                    const csvContent = Array.from(selectedCities)
-                        .map(city => `${city.name},${city.phoneCode},${city.population},${city.latitude},${city.longitude}`)
+                    const csvContent = uniqueCities.map(city => `${city.name},${city.phoneCode},${city.population},${city.latitude},${city.longitude}`)
                         .join('\n');
                     
                     const blob = new Blob([`Name,Phone Code,Population,Latitude,Longitude\n${csvContent}`], { type: 'text/csv' });
@@ -858,7 +1072,7 @@
                 });
 
                 document.getElementById('download-xls-btn').addEventListener('click', () => {
-                    const data = Array.from(selectedCities).map(city => ({
+                    const data = uniqueCities.map(city => ({
                         Name: city.name,
                         'Phone Code': city.phoneCode,
                         Population: city.population,
@@ -964,28 +1178,32 @@
                     }
                 });
 
-                // Handle reset button
-                document.getElementById('reset-btn').addEventListener('click', function() {
-                    // Clear all drawn shapes
-                    drawnItems.clearLayers();
-                    
-                    // Reset city list
-                    document.getElementById('city-list').innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
-                    
-                    // Disable download buttons
-                    document.getElementById('download-csv-btn').disabled = true;
-                    document.getElementById('download-xls-btn').disabled = true;
-                    document.getElementById('download-pdf-btn').disabled = true;
-                    
-                    // Hide diameter control
-                    document.getElementById('diameter-control').style.display = 'none';
-                    
-                    // Clear all city markers from the map
-                    cityMarkers.forEach(({ marker, layer }) => {
-                        layer.removeLayer(marker);
-                    });
+                // Add configuration button handler
+                document.getElementById('config-button').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const configSection = document.getElementById('config-section');
+                    configSection.classList.toggle('show');
                 });
 
+                // Add input handlers for cost configuration
+                const cityTypes = ['major', 'large', 'medium', 'small'];
+                const costTypes = ['ald', 'adspend'];
+
+                cityTypes.forEach(cityType => {
+                    costTypes.forEach(costType => {
+                        const input = document.getElementById(`${cityType}-${costType}`);
+                        input.addEventListener('change', () => {
+                            const value = parseInt(input.value) || 0;
+                            const cityKey = cityType.charAt(0).toUpperCase() + cityType.slice(1) + ' City';
+                            costConfig[cityKey][costType] = value;
+                            
+                            // Update the display if cities are selected
+                            if (uniqueCities.length > 0) {
+                                updateCityList(uniqueCities);
+                            }
+                        });
+                    });
+                });
             } catch (error) {
                 console.error('Map initialization error:', error);
                 alert('Failed to initialize map. Please refresh the page.');

@@ -389,7 +389,6 @@ const ukTownsAndCities = [
     { name: "Northampton", phoneCode: "01604", population: 225146, latitude: 52.2405, longitude: -0.9027 },
     { name: "Northwich", phoneCode: "01606", population: 19924, latitude: 53.2611, longitude: -2.5147 },
     { name: "Norwich", phoneCode: "01603", population: 143135, latitude: 52.6309, longitude: 1.2974 },
-    { name: "Nottingham", phoneCode: "0115", population: 321500, latitude: 52.9548, longitude: -1.1581 },
     { name: "Nuneaton", phoneCode: "02476", population: 89600, latitude: 52.5236, longitude: -1.4706 },
     
     // Additional UK Locations
