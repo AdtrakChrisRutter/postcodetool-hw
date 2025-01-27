@@ -15,6 +15,34 @@
             height: 12px;
             display: block;
         }
+        
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin: 10px 0;
+            width: 100%;
+        }
+
+        .download-btn {
+            flex: 1;
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .download-btn:hover:not(:disabled) {
+            background-color: #f0f0f0;
+        }
+
+        .download-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -47,8 +75,9 @@
                     </div>
                 </div>
                 <div class="button-group">
-                    <button id="download-csv-btn" disabled>Download CSV</button>
-                    <button id="download-xls-btn" disabled>Download XLS</button>
+                    <button id="download-pdf-btn" class="download-btn" disabled>PDF</button>
+                    <button id="download-csv-btn" class="download-btn" disabled>CSV</button>
+                    <button id="download-xls-btn" class="download-btn" disabled>XLS</button>
                 </div>
                 <button id="reset-btn">Reset Map</button>
             </div>
@@ -88,6 +117,8 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="uk_cities_data.js"></script>
     <script>
         // Wait for DOM to be fully loaded
@@ -203,6 +234,7 @@
                         document.getElementById('city-list').innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
                         document.getElementById('download-csv-btn').disabled = true;
                         document.getElementById('download-xls-btn').disabled = true;
+                        document.getElementById('download-pdf-btn').disabled = true;
                         return [];
                     }
 
@@ -682,11 +714,13 @@
                     const cityList = document.getElementById('city-list');
                     const csvBtn = document.getElementById('download-csv-btn');
                     const xlsBtn = document.getElementById('download-xls-btn');
+                    const pdfBtn = document.getElementById('download-pdf-btn');
 
                     if (cities.length === 0) {
                         cityList.innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
                         csvBtn.disabled = true;
                         xlsBtn.disabled = true;
+                        pdfBtn.disabled = true;
                         return;
                     }
 
@@ -738,6 +772,7 @@
 
                     csvBtn.disabled = false;
                     xlsBtn.disabled = false;
+                    pdfBtn.disabled = false;
                 }
 
                 // Filter button functionality
@@ -778,6 +813,7 @@
                     const hasSelection = selectedCities.size > 0;
                     document.getElementById('download-csv-btn').disabled = !hasSelection;
                     document.getElementById('download-xls-btn').disabled = !hasSelection;
+                    document.getElementById('download-pdf-btn').disabled = !hasSelection;
                 }
 
                 // Handle download buttons
@@ -810,6 +846,98 @@
                     XLSX.writeFile(wb, 'selected_cities.xlsx');
                 });
 
+                document.getElementById('download-pdf-btn').addEventListener('click', async () => {
+                    try {
+                        // Show loading state
+                        const pdfButton = document.getElementById('download-pdf-btn');
+                        pdfButton.disabled = true;
+                        pdfButton.textContent = 'Generating PDF...';
+
+                        // Get the map container
+                        const mapElement = document.getElementById('map');
+                        
+                        // Temporarily hide red dots and shapes
+                        const nearbyDots = document.querySelectorAll('.nearby-marker-icon');
+                        nearbyDots.forEach(dot => dot.style.display = 'none');
+                        
+                        // Store current layers visibility
+                        const drawnLayersVisible = drawnItems.getLayers().map(layer => ({
+                            layer,
+                            wasVisible: map.hasLayer(layer)
+                        }));
+                        
+                        // Hide all drawn shapes
+                        drawnLayersVisible.forEach(({layer}) => {
+                            if (map.hasLayer(layer)) {
+                                map.removeLayer(layer);
+                            }
+                        });
+                        
+                        // Capture the map view
+                        const canvas = await html2canvas(mapElement, {
+                            useCORS: true,
+                            allowTaint: true,
+                            scrollX: 0,
+                            scrollY: 0,
+                            scale: 2 // Higher quality
+                        });
+
+                        // Restore red dots and shapes
+                        nearbyDots.forEach(dot => dot.style.display = 'block');
+                        drawnLayersVisible.forEach(({layer, wasVisible}) => {
+                            if (wasVisible) {
+                                map.addLayer(layer);
+                            }
+                        });
+
+                        // Create PDF
+                        const { jsPDF } = window.jspdf;
+                        const pdf = new jsPDF({
+                            orientation: 'landscape',
+                            unit: 'px',
+                            format: [canvas.width, canvas.height]
+                        });
+
+                        // Add the map image
+                        pdf.addImage(
+                            canvas.toDataURL('image/jpeg', 1.0),
+                            'JPEG',
+                            0,
+                            0,
+                            canvas.width,
+                            canvas.height
+                        );
+
+                        // Generate filename with timestamp
+                        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                        const filename = `map-export-${timestamp}.pdf`;
+
+                        // Save the PDF
+                        pdf.save(filename);
+
+                        // Reset button state
+                        pdfButton.disabled = false;
+                        pdfButton.textContent = 'PDF';
+                    } catch (error) {
+                        console.error('Error generating PDF:', error);
+                        alert('Error generating PDF. Please try again.');
+                        
+                        // Reset button state
+                        const pdfButton = document.getElementById('download-pdf-btn');
+                        pdfButton.disabled = false;
+                        pdfButton.textContent = 'PDF';
+                        
+                        // Ensure elements are restored in case of error
+                        document.querySelectorAll('.nearby-marker-icon')
+                            .forEach(dot => dot.style.display = 'block');
+                        drawnItems.getLayers().forEach(layer => {
+                            if (!map.hasLayer(layer)) {
+                                map.addLayer(layer);
+                            }
+                        });
+                    }
+                });
+
                 // Handle reset button
                 document.getElementById('reset-btn').addEventListener('click', function() {
                     // Clear all drawn shapes
@@ -821,6 +949,7 @@
                     // Disable download buttons
                     document.getElementById('download-csv-btn').disabled = true;
                     document.getElementById('download-xls-btn').disabled = true;
+                    document.getElementById('download-pdf-btn').disabled = true;
                     
                     // Hide diameter control
                     document.getElementById('diameter-control').style.display = 'none';
