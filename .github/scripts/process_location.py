@@ -2,13 +2,14 @@ import json
 import os
 import re
 import requests
+import base64
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 
 def get_issue_data():
     """Extract location data from the issue body"""
-    issue_number = os.environ['GITHUB_EVENT_PATH']
-    with open(issue_number, 'r') as f:
+    event_path = os.environ['GITHUB_EVENT_PATH']
+    with open(event_path, 'r') as f:
         event = json.load(f)
     
     body = event['issue']['body']
@@ -57,45 +58,57 @@ def create_pull_request(name, lat, lon, population, issue_number):
     branch_name = f"add-location-{name.lower().replace(' ', '-')}"
     
     # Get the current commit SHA
-    r = requests.get(f"{api_url}/git/ref/heads/main", headers=headers)
+    r = requests.get(f"{api_url}/git/refs/heads/main", headers=headers)
+    if r.status_code != 200:
+        raise ValueError(f"Failed to get main branch SHA: {r.text}")
     sha = r.json()['object']['sha']
     
     # Create new branch
-    requests.post(
-        f"{api_url}/git/refs",
-        headers=headers,
-        json={
-            'ref': f"refs/heads/{branch_name}",
-            'sha': sha
-        }
-    )
-    
-    # Update uk_cities_data.js
-    new_location = f"""    {{ name: "{name}", phoneCode: "", population: {population or 0}, latitude: {lat}, longitude: {lon} }},\n"""
-    
+    try:
+        requests.post(
+            f"{api_url}/git/refs",
+            headers=headers,
+            json={
+                'ref': f"refs/heads/{branch_name}",
+                'sha': sha
+            }
+        )
+    except requests.exceptions.RequestException as e:
+        raise ValueError(f"Failed to create branch: {str(e)}")
+
     # Get current file content
     r = requests.get(f"{api_url}/contents/uk_cities_data.js", headers=headers)
+    if r.status_code != 200:
+        raise ValueError(f"Failed to get file content: {r.text}")
     content = r.json()
     
+    # Decode content
+    file_content = base64.b64decode(content['content']).decode('utf-8')
+    
     # Update file content
-    file_content = content['content'].decode('base64')
+    new_location = f'    {{ name: "{name}", phoneCode: "", population: {population or 0}, latitude: {lat}, longitude: {lon} }},\n'
     insertion_point = file_content.rfind('];')
     new_content = file_content[:insertion_point] + new_location + file_content[insertion_point:]
     
+    # Encode content
+    encoded_content = base64.b64encode(new_content.encode('utf-8')).decode('utf-8')
+    
     # Commit changes
-    requests.put(
+    r = requests.put(
         f"{api_url}/contents/uk_cities_data.js",
         headers=headers,
         json={
             'message': f"Add {name} to locations",
-            'content': new_content.encode('base64'),
+            'content': encoded_content,
             'branch': branch_name,
             'sha': content['sha']
         }
     )
+    if r.status_code != 200:
+        raise ValueError(f"Failed to commit changes: {r.text}")
     
     # Create pull request
-    pr = requests.post(
+    r = requests.post(
         f"{api_url}/pulls",
         headers=headers,
         json={
@@ -105,8 +118,10 @@ def create_pull_request(name, lat, lon, population, issue_number):
             'base': 'main'
         }
     )
+    if r.status_code != 201:
+        raise ValueError(f"Failed to create PR: {r.text}")
     
-    return pr.json()['html_url']
+    return r.json()['html_url']
 
 def main():
     try:
