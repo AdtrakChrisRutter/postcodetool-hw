@@ -437,13 +437,23 @@
                     // Remove from list
                     uniqueCities = uniqueCities.filter(city => city.name !== cityName);
                     
-                    // Remove marker
-                    const { marker, layer } = cityMarkers.get(cityName);
-                    layer.removeLayer(marker);
-                    cityMarkers.delete(cityName);
+                    // Remove all existing markers for this city
+                    if (cityMarkers.has(cityName)) {
+                        const markerData = cityMarkers.get(cityName);
+                        if (markerData.marker) {
+                            map.removeLayer(markerData.marker);
+                        }
+                        cityMarkers.delete(cityName);
+                    }
                     
                     // If city is still within or near any shape, convert back to red dot
                     if (isCityInOrNearShape(removedCity)) {
+                        // Remove any existing nearby marker first
+                        if (nearbyMarkers.has(cityName)) {
+                            const nearbyMarker = nearbyMarkers.get(cityName);
+                            map.removeLayer(nearbyMarker);
+                            nearbyMarkers.delete(cityName);
+                        }
                         addNearbyMarker(removedCity);
                     }
                     
@@ -453,6 +463,15 @@
 
                 // Function to add a regular marker for a city
                 function addRegularMarker(city) {
+                    // Remove any existing markers for this city first
+                    if (cityMarkers.has(city.name)) {
+                        const existingMarker = cityMarkers.get(city.name);
+                        if (existingMarker.marker) {
+                            map.removeLayer(existingMarker.marker);
+                        }
+                        cityMarkers.delete(city.name);
+                    }
+                    
                     const marker = L.marker([city.latitude, city.longitude]);
                     
                     // Add click handler for removal
@@ -460,9 +479,8 @@
                         removeCity(city.name);
                     });
                     
-                    const layerGroup = new L.LayerGroup().addTo(map);
-                    layerGroup.addLayer(marker);
-                    cityMarkers.set(city.name, { marker, layer: layerGroup });
+                    marker.addTo(map);
+                    cityMarkers.set(city.name, { marker });
                 }
 
                 // Handle diameter input
