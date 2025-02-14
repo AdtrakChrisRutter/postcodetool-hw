@@ -41,7 +41,7 @@
             transition: background-color 0.2s;
             width: 100%;
         }
-
+Per
         .download-btn:hover:not(:disabled) {
             background-color: #f0f0f0;
         }
@@ -204,7 +204,7 @@
                 <div id="diameter-control" style="display: none;">
                     <label for="diameter-input">Circle Diameter (miles):</label>
                     <div class="diameter-input-group">
-                        <input type="number" id="diameter-input" min="1" max="500" value="30">
+                        <input type="number" id="diameter-input" min="1" max="500" value="30" step="1" onchange="this.value=Math.ceil(this.value)">
                         <button id="apply-diameter-btn">Apply</button>
                     </div>
                     <div class="postcode-input-group">
@@ -387,18 +387,145 @@
                         circlemarker: false,
                         marker: false
                     },
-                    edit: {
-                        featureGroup: drawnItems,
-                        remove: true,
-                        edit: {
-                            selectedPathOptions: {
-                                maintainColor: true,
-                                opacity: 0.3
+                    edit: false
+                });
+                map.addControl(drawControl);
+
+                // Track the currently edited layer
+                let currentEditHandler = null;
+                let selectedLayer = null;
+
+                // Function to enable editing for a layer
+                function enableEditing(layer) {
+                    // If there's already an edit handler, disable it first
+                    if (currentEditHandler) {
+                        currentEditHandler.disable();
+                        currentEditHandler = null;
+                    }
+
+                    // Update selected layer
+                    selectedLayer = layer;
+
+                    // Create a new edit handler for the layer
+                    if (layer instanceof L.Circle) {
+                        currentEditHandler = new L.Edit.Circle(layer, { moveIcon: new L.DivIcon({ iconSize: new L.Point(8, 8) }) });
+                        updateCircleDiameter(); // Update diameter box when selecting a circle
+                        // Reset postcode input if this circle isn't centered on a postcode
+                        if (!layer.postcodeCenter) {
+                            document.getElementById('postcode-input').value = 'Example: LS1 4AX';
+                        }
+                    } else if (layer instanceof L.Rectangle) {
+                        currentEditHandler = new L.Edit.Rectangle(layer, { moveIcon: new L.DivIcon({ iconSize: new L.Point(8, 8) }) });
+                    } else if (layer instanceof L.Polygon) {
+                        currentEditHandler = new L.Edit.Polygon(layer, { moveIcon: new L.DivIcon({ iconSize: new L.Point(8, 8) }) });
+                    }
+
+                    if (currentEditHandler) {
+                        currentEditHandler.enable();
+                    }
+                }
+
+                // Function to handle shape deletion
+                function deleteSelectedShape() {
+                    if (selectedLayer) {
+                        if (currentEditHandler) {
+                            currentEditHandler.disable();
+                            currentEditHandler = null;
+                        }
+                        drawnItems.removeLayer(selectedLayer);
+                        selectedLayer = null;
+
+                        // Clear only nearby markers, keep selected cities
+                        nearbyMarkers.forEach(marker => {
+                            map.removeLayer(marker);
+                        });
+                        nearbyMarkers.clear();
+
+                        // Update nearby markers for remaining shapes
+                        drawnItems.getLayers().forEach(layer => {
+                            if (layer instanceof L.Circle || layer instanceof L.Rectangle || layer instanceof L.Polygon) {
+                                window.ukTownsAndCities.forEach(city => {
+                                    if (!uniqueCities.some(c => c.name === city.name)) {
+                                        if (isCityInBuffer(city, layer)) {
+                                            addNearbyMarker(city);
+                                        }
+                                    }
+                                });
                             }
+                        });
+                    }
+                }
+
+                // Add keyboard event listener for delete/backspace
+                document.addEventListener('keydown', (e) => {
+                    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedLayer) {
+                        // Only handle delete if we're not in an input field
+                        if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+                            e.preventDefault();
+                            deleteSelectedShape();
                         }
                     }
                 });
-                map.addControl(drawControl);
+
+                // Add click handler to enable editing
+                drawnItems.on('click', (e) => {
+                    const layer = e.layer;
+                    enableEditing(layer);
+                    updateDiameterInput(); // Update diameter input when selecting a shape
+                });
+
+                // Update markers when shape is edited
+                map.on('draw:editstart', () => {
+                    // Start of editing
+                    filterCitiesInShapes();
+                });
+
+                map.on('draw:editvertex', () => {
+                    // During vertex/radius editing
+                    removeNearbyMarkers(); // Remove existing nearby markers
+                    filterCitiesInShapes(); // Add new markers based on current shape
+                });
+
+                map.on('draw:editstop', () => {
+                    // End of editing
+                    filterCitiesInShapes();
+                });
+
+                // Add handler for circle resize
+                map.on('draw:editresize', () => {
+                    removeNearbyMarkers(); // Remove existing nearby markers
+                    filterCitiesInShapes(); // Add new markers based on current shape
+                });
+
+                // Handle clicking outside of shapes
+                map.on('click', (e) => {
+                    // Check if click was on a shape
+                    let clickedShape = false;
+                    drawnItems.eachLayer((layer) => {
+                        if (layer.getBounds && layer.getBounds().contains(e.latlng)) {
+                            clickedShape = true;
+                        } else if (layer instanceof L.Circle) {
+                            const center = layer.getLatLng();
+                            const radius = layer.getRadius();
+                            if (center.distanceTo(e.latlng) <= radius) {
+                                clickedShape = true;
+                            }
+                        }
+                    });
+
+                    // If click was not on a shape, disable current editing and deselect
+                    if (!clickedShape) {
+                        if (currentEditHandler) {
+                            currentEditHandler.disable();
+                            currentEditHandler = null;
+                        }
+                        selectedLayer = null;
+                        // Hide diameter control when deselecting
+                        document.getElementById('diameter-control').style.display = 'none';
+                        // Reset postcode input to default
+                        document.getElementById('postcode-input').value = 'Example: LS1 4AX';
+                    }
+                });
 
                 // Add city markers if data is loaded
                 let selectedCities = new Set();
@@ -433,9 +560,21 @@
                     
                     // If no shapes, clear everything
                     if (layers.length === 0) {
+                        // Clear regular markers
                         cityMarkers.forEach(({ marker, layer }) => {
-                            layer.removeLayer(marker);
+                            if (marker) {
+                                map.removeLayer(marker);
+                                layer.removeLayer(marker);
+                            }
                         });
+                        cityMarkers.clear();
+
+                        // Clear nearby markers
+                        nearbyMarkers.forEach(marker => {
+                            map.removeLayer(marker);
+                        });
+                        nearbyMarkers.clear();
+
                         document.getElementById('city-list').innerHTML = '<div class="no-results">Draw a shape to select cities.</div>';
                         document.getElementById('download-csv-btn').disabled = true;
                         document.getElementById('download-xls-btn').disabled = true;
@@ -462,19 +601,46 @@
                     const uniqueCities = Array.from(new Set(filteredCities.map(city => city.name)))
                         .map(name => filteredCities.find(city => city.name === name));
 
-                    // Remove all markers first
+                    // Remove all existing markers (both regular and nearby)
                     cityMarkers.forEach(({ marker, layer }) => {
-                        layer.removeLayer(marker);
+                        if (marker) {
+                            map.removeLayer(marker);
+                            layer.removeLayer(marker);
+                        }
+                    });
+                    cityMarkers.clear();
+
+                    nearbyMarkers.forEach(marker => {
+                        map.removeLayer(marker);
+                    });
+                    nearbyMarkers.clear();
+
+                    // Create new markers for filtered cities
+                    uniqueCities.forEach(city => {
+                        const marker = L.marker([city.latitude, city.longitude])
+                            .bindPopup(`<b>${city.name}</b><br>Population: ${city.population.toLocaleString()}<br>Phone Code: ${city.phoneCode}`);
+                        marker.addTo(map);
+                        cityMarkers.set(city.name, { marker, layer: markerGroup });
                     });
 
-                    // If city is in any shape, show its marker
-                    uniqueCities.forEach(city => {
-                        const { marker, layer: markerLayer } = cityMarkers.get(city.name);
-                        markerLayer.addLayer(marker);
+                    // Add nearby markers for cities in buffer zone
+                    layers.forEach(layer => {
+                        if (layer instanceof L.Circle || layer instanceof L.Rectangle || layer instanceof L.Polygon) {
+                            window.ukTownsAndCities.forEach(city => {
+                                // Skip if city is already selected
+                                if (!uniqueCities.some(c => c.name === city.name)) {
+                                    const latLng = L.latLng(city.latitude, city.longitude);
+                                    if (isCityInBuffer(city, layer)) {
+                                        addNearbyMarker(city);
+                                    }
+                                }
+                            });
+                        }
                     });
 
                     updateCityList(uniqueCities);
                     updateDownloadButtons();
+                    updateTotalsBox();
 
                     return uniqueCities;
                 }
@@ -492,16 +658,18 @@
                 // Function to update circle diameter
                 function updateCircleDiameter() {
                     const diameterControl = document.getElementById('diameter-control');
-                    const circles = drawnItems.getLayers().filter(layer => layer instanceof L.Circle);
                     
-                    if (circles.length > 0) {
+                    if (selectedLayer instanceof L.Circle) {
                         diameterControl.style.display = 'block';
-                        
-                        // Update input value to show current diameter of last circle
-                        const currentRadius = circles[circles.length - 1].getRadius();
-                        document.getElementById('diameter-input').value = Math.round(metersToMiles(currentRadius * 2));
+                        // Update input value to show current diameter of selected circle
+                        const currentRadius = selectedLayer.getRadius();
+                        document.getElementById('diameter-input').value = Math.ceil(metersToMiles(currentRadius * 2));
+                        document.getElementById('diameter-input').disabled = false;
+                        document.getElementById('apply-diameter-btn').disabled = false;
                     } else {
                         diameterControl.style.display = 'none';
+                        document.getElementById('diameter-input').disabled = true;
+                        document.getElementById('apply-diameter-btn').disabled = true;
                     }
                 }
 
@@ -722,22 +890,48 @@
                     cityMarkers.set(city.name, { marker, layer: markerGroup });
                 }
 
+                // Function to update diameter input based on selected circle
+                function updateDiameterInput() {
+                    const diameterInput = document.getElementById('diameter-input');
+                    if (selectedLayer instanceof L.Circle) {
+                        const radiusInMiles = metersToMiles(selectedLayer.getRadius());
+                        diameterInput.value = Math.ceil(radiusInMiles * 2); // Round up to nearest mile
+                        diameterInput.disabled = false;
+                        document.getElementById('apply-diameter-btn').disabled = false;
+                    } else {
+                        diameterInput.value = '';
+                        diameterInput.disabled = true;
+                        document.getElementById('apply-diameter-btn').disabled = true;
+                    }
+                }
+
                 // Handle diameter input
                 document.getElementById('apply-diameter-btn').addEventListener('click', function() {
-                    const circles = drawnItems.getLayers().filter(layer => layer instanceof L.Circle);
-                    if (circles.length > 0) {
+                    if (selectedLayer instanceof L.Circle) {
                         const diameter = parseFloat(document.getElementById('diameter-input').value);
                         const radius = milesToMeters(diameter / 2);
                         
-                        // Update all circles
-                        circles.forEach(circle => {
-                            circle.setRadius(radius);
-                        });
+                        // Update selected circle
+                        selectedLayer.setRadius(radius);
                         
-                        // Refilter cities based on new circle size
-                        filterCitiesInShapes();
+                        // Update markers
+                        removeNearbyMarkers(); // Remove existing nearby markers
+                        filterCitiesInShapes(); // Add new markers based on current shape
                     }
                 });
+
+                // Function to remove only nearby (red dot) markers
+                function removeNearbyMarkers() {
+                    cityMarkers.forEach(({ marker, layer }, cityName) => {
+                        // Only remove markers that aren't in uniqueCities (red dot markers)
+                        if (!uniqueCities.some(city => city.name === cityName)) {
+                            if (marker) {
+                                map.removeLayer(marker);
+                                layer.removeLayer(marker);
+                            }
+                        }
+                    });
+                }
 
                 // Handle postcode input
                 document.getElementById('apply-postcode-btn').addEventListener('click', async function() {
@@ -749,30 +943,43 @@
 
                     try {
                         const coords = await getPostcodeCoordinates(postcode);
-                        const circles = drawnItems.getLayers().filter(layer => layer instanceof L.Circle);
                         
-                        if (circles.length > 0) {
-                            // Get the current radius of the first circle
-                            const radius = circles[0].getRadius();
+                        if (selectedLayer instanceof L.Circle) {
+                            // Keep the current radius
+                            const currentRadius = selectedLayer.getRadius();
                             
-                            // Remove existing circles
-                            circles.forEach(circle => drawnItems.removeLayer(circle));
+                            // Remove only nearby markers
+                            removeNearbyMarkers();
+                            
+                            // Remove the old circle
+                            if (currentEditHandler) {
+                                currentEditHandler.disable();
+                                currentEditHandler = null;
+                            }
+                            drawnItems.removeLayer(selectedLayer);
                             
                             // Create new circle at postcode location
                             const newCircle = new L.Circle([coords.lat, coords.lng], {
-                                radius: radius,
+                                radius: currentRadius,
                                 color: '#2196F3'
                             });
                             
+                            // Mark this circle as being centered on a postcode
+                            newCircle.postcodeCenter = true;
+                            
                             drawnItems.addLayer(newCircle);
+                            
+                            // Select and enable editing for the new circle
+                            selectedLayer = newCircle;
+                            enableEditing(newCircle);
                             
                             // Center map on new location
                             map.setView([coords.lat, coords.lng], 10);
                             
-                            // Update cities within the new circle
+                            // Update markers for the new position
                             filterCitiesInShapes();
                         } else {
-                            // If no circle exists, create one with default radius (15 miles)
+                            // If no circle is selected, create one with default radius (15 miles)
                             const defaultRadius = milesToMeters(15);
                             const newCircle = new L.Circle([coords.lat, coords.lng], {
                                 radius: defaultRadius,
@@ -781,9 +988,19 @@
                             
                             drawnItems.addLayer(newCircle);
                             map.setView([coords.lat, coords.lng], 10);
-                            filterCitiesInShapes();
                             updateCircleDiameter();
                         }
+                        
+                        // Update cities within the new circle
+                        const filteredCities = filterCitiesInShapes();
+                        
+                        // Add markers for filtered cities
+                        filteredCities.forEach(city => {
+                            addRegularMarker(city);
+                        });
+                        
+                        // Update totals
+                        updateTotalsBox();
                     } catch (error) {
                         alert(error.message);
                     }
@@ -823,11 +1040,8 @@
                     // Show available cities (both within and nearby)
                     updateAllAvailableCities();
                     
-                    // Show diameter control for circles
-                    if (layer instanceof L.Circle) {
-                        document.getElementById('diameter-control').style.display = 'block';
-                        updateCircleDiameter();
-                    }
+                    // Select the newly created shape
+                    enableEditing(layer);
                 });
 
                 map.on('draw:deleted', function(e) {
