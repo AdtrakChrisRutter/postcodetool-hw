@@ -2,3 +2,7 @@
 node_modules/
 *.log
 .env
+
+# Configuration files with sensitive data
+config.js
+config.*.js
