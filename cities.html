@@ -349,11 +349,16 @@ Per
                 });
 
                 // Initialize layers
-                const drawnItems = new L.FeatureGroup().addTo(map);
+                const drawnItems = new L.FeatureGroup();
                 let cityMarkers = new Map(); // Store markers for each city
                 let nearbyMarkers = new Map();
-                const markerGroup = L.layerGroup().addTo(map);
-                const nearbyMarkerGroup = L.layerGroup().addTo(map);
+                const markerGroup = L.layerGroup();
+                const nearbyMarkerGroup = L.layerGroup();
+                
+                // Add layers to map
+                drawnItems.addTo(map);
+                markerGroup.addTo(map);
+                nearbyMarkerGroup.addTo(map);
 
                 // Initialize drawing controls
                 const drawControl = new L.Control.Draw({
@@ -387,7 +392,11 @@ Per
                         circlemarker: false,
                         marker: false
                     },
-                    edit: false
+                    edit: {
+                        featureGroup: drawnItems,
+                        edit: false,
+                        remove: true
+                    }
                 });
                 map.addControl(drawControl);
 
@@ -396,6 +405,16 @@ Per
                 let selectedLayer = null;
 
                 // Function to enable editing for a layer
+                function disableEditing(layer) {
+                    if (layer === selectedLayer) {
+                        selectedLayer = null;
+                    }
+                    if (currentEditHandler) {
+                        currentEditHandler.disable();
+                        currentEditHandler = null;
+                    }
+                }
+
                 function enableEditing(layer) {
                     // If there's already an edit handler, disable it first
                     if (currentEditHandler) {
@@ -553,6 +572,22 @@ Per
                     return distance <= radius;
                 }
 
+                function isPointInPolygon(point, polygon) {
+                    let inside = false;
+                    let j = polygon.length - 1;
+
+                    for (let i = 0; i < polygon.length; i++) {
+                        if (((polygon[i].lat > point.lat) !== (polygon[j].lat > point.lat)) &&
+                            (point.lng < (polygon[j].lng - polygon[i].lng) * (point.lat - polygon[i].lat) / 
+                            (polygon[j].lat - polygon[i].lat) + polygon[i].lng)) {
+                            inside = !inside;
+                        }
+                        j = i;
+                    }
+
+                    return inside;
+                }
+
                 // Function to filter cities within multiple shapes
                 function filterCitiesInShapes() {
                     // Get all drawn layers
@@ -590,6 +625,8 @@ Per
                         return layers.some(layer => {
                             if (layer instanceof L.Circle) {
                                 return isPointInCircle(cityLatLng, layer);
+                            } else if (layer instanceof L.Polygon) {
+                                return layer.contains(cityLatLng); // Leaflet's built-in polygon contains check
                             } else {
                                 const bounds = layer.getBounds();
                                 return bounds.contains(cityLatLng);
@@ -1014,15 +1051,38 @@ Per
                 });
 
                 // Handle drawing events
+                // Prevent mouse events immediately after drawing
+                let lastDrawTime = 0;
+                const DRAW_COOLDOWN = 500; // milliseconds
+
                 map.on('draw:created', function(e) {
+                    lastDrawTime = Date.now();
                     const layer = e.layer;
                     drawnItems.addLayer(layer);
+                    
+                    // Disable drawing mode after shape creation
+                    Object.values(drawControl._toolbars.draw._modes).forEach(mode => {
+                        if (mode.handler && mode.handler.enabled()) {
+                            mode.handler.disable();
+                        }
+                    });
                     
                     // Get cities within the shape
                     const selectedCities = [];
                     ukTownsAndCities.forEach(city => {
                         const latLng = L.latLng(city.latitude, city.longitude);
-                        if (layer.getBounds().contains(latLng)) {
+                        let isInside = false;
+
+                        if (layer instanceof L.Circle) {
+                            isInside = layer.getLatLng().distanceTo(latLng) <= layer.getRadius();
+                        } else if (layer instanceof L.Rectangle) {
+                            isInside = layer.getBounds().contains(latLng);
+                        } else if (layer instanceof L.Polygon) {
+                            const latLngs = layer.getLatLngs()[0];
+                            isInside = isPointInPolygon(latLng, latLngs);
+                        }
+
+                        if (isInside) {
                             selectedCities.push(city);
                             addRegularMarker(city);
                         }
@@ -1112,7 +1172,13 @@ Per
                 map.on('layeradd', (e) => {
                     const layer = e.layer;
                     if (layer instanceof L.Rectangle || layer instanceof L.Circle || layer instanceof L.Polygon) {
-                        // Handle shape movement
+                        // Prevent immediate interaction after drawing
+                        layer.on('mousedown', (e) => {
+                            if (Date.now() - lastDrawTime < DRAW_COOLDOWN) {
+                                L.DomEvent.stopPropagation(e);
+                            }
+                        });
+                        
                         layer.on('move', () => {
                             if (layer._map) {
                                 updateAllAvailableCities();
