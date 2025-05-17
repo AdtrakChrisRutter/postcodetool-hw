@@ -53,7 +53,7 @@ body {
 }
 
 .back-link:hover {
-    color: #FF4438;
+    color: #00B67A;
 }
 
 .logo {
@@ -121,23 +121,23 @@ button:disabled {
 }
 
 #download-csv-btn, #download-xls-btn {
-    background-color: #FF4438;
+    background-color: #0F4C81;
     color: white;
 }
 
 #download-csv-btn:hover:not(:disabled), 
 #download-xls-btn:hover:not(:disabled) {
-    background-color: #e63c31;
+    background-color: #0d4373;
 }
 
 #reset-btn {
-    background-color: #333;
+    background-color: #0F4C81;
     color: white;
     width: 100%;
 }
 
 #reset-btn:hover {
-    background-color: #444;
+    background-color: #0d4373;
 }
 
 #city-list {
@@ -193,7 +193,7 @@ button:disabled {
 }
 
 .cost-value {
-    color: #FF4438;
+    color: #00B67A;
     font-weight: 500;
 }
 
@@ -285,7 +285,7 @@ button:disabled {
 .radius-control button {
     flex: 0 0 auto;
     padding: 8px 15px;
-    background-color: #FF4438;
+    background-color: #0F4C81;
     color: white;
     border: none;
     border-radius: 4px;
@@ -399,7 +399,7 @@ button:disabled {
 }
 
 .nearby-marker-icon {
-    background-color: #FF4438;
+    background-color: #0F4C81;
     border: 2px solid #fff;
     border-radius: 50%;
     width: 12px !important;
@@ -558,7 +558,7 @@ button:disabled {
 }
 
 input:checked + .slider {
-    background-color: #FF4438;
+    background-color: #0F4C81;
 }
 
 input:checked + .slider:before {
@@ -638,5 +638,5 @@ input:checked + .slider:before {
 
 .total-value {
     font-weight: 500;
-    color: #FF4438;
+    color: #00B67A;
 }

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UK Location Tools</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            width: 200px;
+            height: auto;
+            margin-bottom: 40px;
+        }
+
+        .tools-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tool-card {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 300px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .tool-card h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .tool-card p {
+            color: #666;
+            margin-bottom: 20px;
+            min-height: 60px;
+        }
+
+        .tool-card a {
+            display: inline-block;
+            background-color: #FF4438;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        .tool-card a:hover {
+            background-color: #e63e33;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .tool-card {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .logo {
+                width: 150px;
+                margin-bottom: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://www.healthier-workforce.co.uk/wp-content/themes/healthier-workforce/_static/images/logo.svg" alt="Healthier Workforce Logo" class="logo">
+        <div class="tools-container">
+            <div class="tool-card">
+                <h2>Postcode Tool</h2>
+                <p>Draw shapes on a map to find all postcodes within the selected areas. Perfect for targeting specific regions.</p>
+                <a href="postcode.html">Open Postcode Tool</a>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
