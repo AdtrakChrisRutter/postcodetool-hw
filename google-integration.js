@@ -3,11 +3,14 @@ let drawingLayer = null;
 let existingLocations = new Set();
 let selectedCustomer = null;
 
-// Your OAuth 2.0 client ID
-const CLIENT_ID = '863782134250-8kmnflneqfcp9peu116o5ufab9e4esip.apps.googleusercontent.com';
-
-// Get API key from config
+// Get credentials from config file
+const CLIENT_ID = window.CONFIG?.CLIENT_ID;
 const API_KEY = window.CONFIG?.API_KEY;
+
+// Ensure config is loaded
+if (!CLIENT_ID || !API_KEY) {
+    console.error('Configuration missing. Please create a config.js file based on config.template.js');
+}
 
 // Discovery doc URL for APIs used by the quickstart
 const DISCOVERY_DOC = 'https://sheets.googleapis.com/$discovery/rest?version=v4';

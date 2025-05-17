@@ -20,7 +20,15 @@ An interactive web application that allows users to draw shapes on a map of the 
 ## Setup
 
 1. Clone this repository
-2. Open `index.html` in a web browser
+2. Create a `config.js` file in the root directory with the following content:
+   ```javascript
+   window.CONFIG = {
+       CLIENT_ID: 'your-google-oauth-client-id',
+       API_KEY: 'your-google-api-key'
+   };
+   ```
+3. Replace the placeholder values with your Google API credentials
+4. Open `index.html` in a web browser
 
 ## Usage
 
